@@ -26,15 +26,21 @@ int main(int argc, char **argv){
     /**
      * Create an object of properties, give phyMode, rss value and number of nodes 
      */
-    Properties prop ("DsssRate11Mbps",-80, 8);
+    Properties prop ("DsssRate11Mbps",-80, 2);
     prop.initialize(true, true); /**< Initializing with realtime simulation and with checksum enabled*/
     prop.setWifi (false, true); /**<Set wifi without debug and enable pcap and ascii tracing*/
     prop.setInternet (); /**< Set IP*/
 
     /**
-     * Create and start a Planner 
+     * Create and start a Planner: ros::NodeHandle& _nh, 
+     *                             ros::NodeHandle& _nh_private, 
+     *                             rnl::Properties& p, <network propoertity>
+                                   int n,              <number of nodes>
+                                   float  _pki,        <packet interval>    original: 0.2
+                                   float _pos_int,     <pos_interval>       original: 0.1
+                                   float _stopTime     <simulation stop time> original: 2500.0
      */
-    rnl::Planner plan (nh, nh_private, prop, 8, 0.2, 0.1, 2500.0);
+    rnl::Planner plan (nh, nh_private, prop, 2, 0.2, 0.1, 2500.0);  
     plan.initializeSockets ();
     plan.startSimul();
     return 0;

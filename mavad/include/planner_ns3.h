@@ -10,6 +10,10 @@
 
 #include <ros/ros.h>
 #include <geometry_msgs/PoseStamped.h>
+#include <std_msgs/String.h>
+#include <sensor_msgs/Image.h>
+
+#include "common/mavlink.h"
 
 #include "ns3/command-line.h"
 #include "ns3/config.h"
@@ -51,6 +55,11 @@ namespace rnl{
          * @brief Construct a new Drone Soc object
          */
         DroneSoc ();
+        
+        void sendRosPacket (const geometry_msgs::PoseStamped::ConstPtr& _pos);
+        void sendArrivedPacket (uint32_t targetId);
+        void sendMAVLinkPacket(uint32_t msgId, uint32_t targetId);
+        
 
         /**
          * @brief send Packet after every n * pktInterval. \n
@@ -60,6 +69,7 @@ namespace rnl{
          * @param n number of nodes in the swarm 
          */
         void sendPacket (ns3::Time pktInterval, int n);
+        
 
         /**
          * @brief Sends a braoadcast packet.
@@ -145,18 +155,26 @@ namespace rnl{
         rnl::Nbt                      nbt; /**< Neighbour table */
         std::vector<ns3::Vector3D>    wpts; /**< Waypoints that drone needs to follow */
         ns3::Vector3D                 pos; /**< Current position of the drone */
+        ns3::Vector3D                 goal; /**< Goal position of the drone (cyw) */
+        int                           state; /**< State of the drone (cyw) */
         int                           lookaheadindex; /**< Look ahead index for the drone */
         int                           toggle_bc; /**< toggle broadcast on/off */
+        sensor_msgs::Image            image; /**< temporary store the image > */
 
         ros::Publisher                drone_lk_ahead_pub;
         ros::Subscriber               drone_pos_sub;
+        ros::Subscriber               drone_image_sub;
+        ros::Publisher                arrive_response_pub;
+        ros::Subscriber               target_pos_sub;
+        ros::Subscriber               target_pos_sub1;
+        ros::Subscriber               target_pos_sub2;
 
         /**
          * @brief Initializes the ros parameters.
          *
          * @param nh node handle
          */
-        void initializeRosParams(ros::NodeHandle& nh);
+        // void initializeRosParams(ros::NodeHandle& nh);
 
         /**
          * @brief Publishes the look ahead index
@@ -169,6 +187,13 @@ namespace rnl{
          * @param _pos Position
          */
         void posSubCb (const geometry_msgs::PoseStamped& _pos);
+
+        /**
+         * @brief Set the (subscribed) image
+         *
+         * @param _msg Image
+         */
+        void imageSubCb (const sensor_msgs::ImageConstPtr& _msg);
     };
 
     /**
@@ -254,6 +279,8 @@ namespace rnl{
             ns3::WifiMacHelper wifiMac; /**< Adding mac layer */
             
             ns3::NetDeviceContainer devices; /**< Virtual net device to be used */
+            ns3::NetDeviceContainer staDevices;
+            ns3::NetDeviceContainer apDevice;
 
             ns3::InternetStackHelper internet; /**< InternetStackHelper */
 
@@ -320,6 +347,10 @@ namespace rnl{
             /**
              * @brief Initialize positions of each UAV 
              */
+            void initializeRosParams();
+            /**
+             * @brief Initialize positions of each UAV 
+             */
             void initializeMobility ();
 
             /**
@@ -340,7 +371,7 @@ namespace rnl{
              *
              * @return  true if drone reached else false
              */
-            static bool siteReached (ns3::Vector3D node_pos, int ID);
+            static bool siteReached (ns3::Vector3D pos, ns3::Vector3D goal, int ID);
 
             /**
              * @brief Start simulation

@@ -16,6 +16,10 @@ include_directories(
 )
 include_directories(include)
 
+
+# Build mavlink c libaray (cyw)
+include_directories(c_library_v2)
+
 file(GLOB_RECURSE mavades  ${CMAKE_CURRENT_SOURCE_DIR}/*.cc)
 
 set(DONT_BUILD )

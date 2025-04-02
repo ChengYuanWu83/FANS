@@ -40,18 +40,23 @@ namespace rnl{
      * @brief Specifying state of a node and swarm as known by the node. Used as a bitfield. \n
      * eg. If I am online and swarm leader has reached site, my state will be 66 = 2 (SONLINE) + 64 (SGSITEREACHED)
      */
-    enum state
+    // enum state
+    // {
+    //     SSITEREACHED    = 1,    // SITE REACHED
+    //     SONLINE         = 2,    // ON STRAIGHT LINE
+    //     SANCHORING      = 4,    // ANCHORING (GOING LEFT,RIGHT,BEHIND)
+    //     SLEFT           = 8,    // LEFT NEIGHBOUR
+    //     SRIGHT          = 16,   // RIGHT NEIGHBOUR
+    //     SCENTRE         = 32,   // CENTRE NEIGHBOUR
+    //     SGSITEREACHED   = 64,   // [GLOBAL] SITE REACHED
+    //     SGDRONEREQ      = 128,  // [GLOBAL] DRONE REQUIRED (LESS THAN 9 DRONES OVER SITE)
+    //     SLAWNMOVERING   = 256,  // LAWNMOVERING
+    //     SCHANGEPAR      = 512   // CHANGING PARENT
+    // };
+    enum state //cyw
     {
         SSITEREACHED    = 1,    // SITE REACHED
-        SONLINE         = 2,    // ON STRAIGHT LINE
-        SANCHORING      = 4,    // ANCHORING (GOING LEFT,RIGHT,BEHIND)
-        SLEFT           = 8,    // LEFT NEIGHBOUR
-        SRIGHT          = 16,   // RIGHT NEIGHBOUR
-        SCENTRE         = 32,   // CENTRE NEIGHBOUR
-        SGSITEREACHED   = 64,   // [GLOBAL] SITE REACHED
-        SGDRONEREQ      = 128,  // [GLOBAL] DRONE REQUIRED (LESS THAN 9 DRONES OVER SITE)
-        SLAWNMOVERING   = 256,  // LAWNMOVERING
-        SCHANGEPAR      = 512   // CHANGING PARENT
+        SMOVE           = 2,    // MOVING TO TARGET
     };
 
     /**
