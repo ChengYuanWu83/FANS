@@ -7,6 +7,9 @@
 #include "planner_ns3_utils.h"
 #include "ns3/core-module.h"
 #include <cmath>
+#include <cv_bridge/cv_bridge.h>
+#include <opencv2/opencv.hpp>
+#include <yaml-cpp/yaml.h>
 
 #include <ros/ros.h>
 #include <geometry_msgs/PoseStamped.h>
@@ -26,9 +29,8 @@
 #include "ns3/yans-wifi-channel.h"
 #include "ns3/mobility-model.h"
 #include "ns3/internet-stack-helper.h"
-
+#include "ns3/buildings-module.h"
 #include "ns3/netanim-module.h"
-
 #include "ns3/ipv4-static-routing-helper.h"
 
 /**
@@ -56,9 +58,10 @@ namespace rnl{
          */
         DroneSoc ();
         
-        void sendRosPacket (const geometry_msgs::PoseStamped::ConstPtr& _pos);
+        void sendGoalPacket (const geometry_msgs::PoseStamped::ConstPtr& _pos);
         void sendArrivedPacket (uint32_t targetId);
         void sendMAVLinkPacket(uint32_t msgId, uint32_t targetId);
+        void sendImagePacket();
         
 
         /**
@@ -159,7 +162,12 @@ namespace rnl{
         int                           state; /**< State of the drone (cyw) */
         int                           lookaheadindex; /**< Look ahead index for the drone */
         int                           toggle_bc; /**< toggle broadcast on/off */
-        sensor_msgs::Image            image; /**< temporary store the image > */
+
+        // cyw variable
+        sensor_msgs::ImageConstPtr    imagePtr; /**< temporary store the image > */
+        std::map<std::pair<uint8_t, uint8_t>, rnl::ImageReceiveBuffer> image_buffers_; /** pair<system id, image sequnce>,  image information**/
+
+        
 
         ros::Publisher                drone_lk_ahead_pub;
         ros::Subscriber               drone_pos_sub;
@@ -252,6 +260,7 @@ namespace rnl{
              */
             void SetStaticRoute(ns3::Ptr<ns3::Node> n, const char* destination, const char* nextHop, uint32_t interface);
 
+
             ns3::NodeContainer c; /**< Node container containing all the nodes */
             
             /**
@@ -298,27 +307,6 @@ namespace rnl{
             ns3::AsciiTraceHelper ascii;
     };
 
-    /**
-     * @brief Initial neighbour table to be set. Since we are initializing the nodes in linear fashion \n 
-     * Setting it requires only index of the node. \n
-     * Set to id + 1 and id - 1 as one hop neighbours
-     * 
-     * @param id Index
-     * @param n number of nodes
-     * @return rnl::Nbt neighbour table
-     */
-    rnl::Nbt   setinitialNbt (int id, int n);
-    
-    /**
-     * @brief Set the initial message to be sent to successor
-     * 
-     * @param nbt Initial neighbour table
-     * @param id source id
-     * @param n number of nodes
-     * @return rnl::USMsg 
-     */
-    rnl::USMsg setinitialSMsg (rnl::Nbt nbt, int id, int n);
-
 
     /**
      * @brief Planner class. Flow \n
@@ -352,6 +340,11 @@ namespace rnl{
              * @brief Initialize positions of each UAV 
              */
             void initializeMobility ();
+
+            /**
+             * @brief Initialize building in simulation
+             */
+            void initializeBuilding ();
 
             /**
              * @brief Initialize sockets
@@ -440,6 +433,7 @@ namespace rnl{
             rnl::Properties            wifi_prop; /**< wifi properties object */
             std::vector<rnl::DroneSoc> nsocs; /**< UAV Drone socs in the simulation, Each DroneSoc represents a UAV */
             int                        num_nodes; /**< number of nodes */
+
 
             ns3::MobilityHelper        mobility; /**< Mobility helper to set the initial mobility of the nodes */
             ns3::Time                  pkt_interval; /**< Unicast packet interval */

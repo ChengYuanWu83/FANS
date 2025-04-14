@@ -109,4 +109,10 @@ namespace rnl {
         std::vector<ns3::Vector3D>* wpts,
         ns3::Vector3D       pos
     );
+
+    std::vector<float> lookAtOrigin(
+        float x,
+        float y,
+        float z
+    );
 };

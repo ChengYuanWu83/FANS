@@ -242,10 +242,10 @@ void Drone::controller()  // Sends commands to the drone
             pose_to_pub.pose.position.x = sp_pose.position.x - offset(0);
             pose_to_pub.pose.position.y = sp_pose.position.y - offset(1);
             pose_to_pub.pose.position.z = sp_pose.position.z - offset(2);
-            pose_to_pub.pose.orientation.x = 0.0;
-            pose_to_pub.pose.orientation.y = 0.0;
-            pose_to_pub.pose.orientation.z = 0.0;
-            pose_to_pub.pose.orientation.w = 1.0;
+            pose_to_pub.pose.orientation.x = sp_pose.orientation.x;
+            pose_to_pub.pose.orientation.y = sp_pose.orientation.y;
+            pose_to_pub.pose.orientation.z = sp_pose.orientation.z;
+            pose_to_pub.pose.orientation.w = sp_pose.orientation.w;
             local_pos_pub.publish(pose_to_pub);
         }
         else if(sp_mode == SP_mode::kVel)

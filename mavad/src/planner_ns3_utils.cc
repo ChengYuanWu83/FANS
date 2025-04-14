@@ -181,3 +181,30 @@ void rnl::posHold
     wpts->clear();
     wpts->push_back (pos);
 }
+
+
+std::vector<float> rnl::lookAtOrigin(
+    float x,
+    float y,
+    float z
+)
+{
+    float dx = -x;
+    float dy = -y;
+    float yaw = atan2(dy, dx);
+
+    std::vector<float> quaternion(4);
+    
+    quaternion[0] = 0;
+    quaternion[1] = 0;
+    quaternion[2] = sin(yaw / 2);
+    quaternion[3] = cos(yaw / 2);
+
+    // std::cerr << "Quaternion: [x: " << quaternion[0]
+    // << ", y: " << quaternion[1]
+    // << ", z: " << quaternion[2]
+    // << ", w: " << quaternion[3]
+    // << ", degree: " << yaw * 180.0 / M_PI  << "]" << std::endl;
+
+    return quaternion;
+}

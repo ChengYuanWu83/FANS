@@ -307,4 +307,41 @@ namespace rnl{
         void parseUnicast   (std::string& msg);
 
     };
+
+
+    // cyw: for mavlink image decode
+    struct ImageReceiveBuffer {
+        bool                    receiving;
+        uint32_t                image_size;
+        uint16_t                width;
+        uint16_t                height;
+        uint8_t                 packets;
+        uint8_t                 quality;
+        std::vector<uint8_t>    data;
+        std::vector<bool>       packet_received;
+        int64_t                 last_update;
+        
+        ImageReceiveBuffer() : receiving(false), image_size(0), width(0), height(0), 
+                               packets(0), quality(0) {}
+                               
+        void reset() {
+            receiving = false;
+            image_size = 0;
+            width = 0;
+            height = 0;
+            packets = 0;
+            quality = 0;
+            data.clear();
+            packet_received.clear();
+            last_update = ns3::Simulator::Now().GetMicroSeconds();
+        }
+        
+        bool isComplete() {
+            if (!receiving) return false;
+            for (bool received : packet_received) {
+                if (!received) return false;
+            }
+            return true;
+        }
+    };
 };

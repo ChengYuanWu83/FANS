@@ -23,10 +23,16 @@ int main(int argc, char **argv){
     ros::NodeHandle nh;
     ros::NodeHandle nh_private("~");
 
+
+    ns3::CommandLine cmd(__FILE__);
+    int num_nodes = 2;
+    cmd.AddValue("num_nodes", "the number of drone", num_nodes);
+    cmd.Parse(argc, argv);
+
     /**
      * Create an object of properties, give phyMode, rss value and number of nodes 
      */
-    Properties prop ("DsssRate11Mbps",-80, 2);
+    Properties prop ("DsssRate11Mbps",-80, num_nodes);
     prop.initialize(true, true); /**< Initializing with realtime simulation and with checksum enabled*/
     prop.setWifi (false, true); /**<Set wifi without debug and enable pcap and ascii tracing*/
     prop.setInternet (); /**< Set IP*/
@@ -40,7 +46,7 @@ int main(int argc, char **argv){
                                    float _pos_int,     <pos_interval>       original: 0.1
                                    float _stopTime     <simulation stop time> original: 2500.0
      */
-    rnl::Planner plan (nh, nh_private, prop, 2, 0.2, 0.1, 2500.0);  
+    rnl::Planner plan (nh, nh_private, prop, num_nodes, 0.2, 0.1, 2500.0);  
     plan.initializeSockets ();
     plan.startSimul();
     return 0;
