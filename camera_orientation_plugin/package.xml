@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>camera_orientation_plugin</name>
+  <version>0.0.1</version>
+  <description>Gazebo plugin to control camera orientation using quaternion</description>
+  <maintainer email="you@domain.com">Your Name</maintainer>
+  <license>BSD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>geometry_msgs</build_depend>
+
+  <exec_depend>roscpp</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+</package>

@@ -189,22 +189,19 @@ std::vector<float> rnl::lookAtOrigin(
     float z
 )
 {
-    float dx = -x;
-    float dy = -y;
-    float yaw = atan2(dy, dx);
+    tf2::Vector3 current(x, y, z);
+    tf2::Vector3 forward = (-current).normalized();  
+    tf2::Vector3 world_up(0, 0, 1);
+    tf2::Vector3 right = world_up.cross(forward).normalized();
+    tf2::Vector3 up = forward.cross(right).normalized();
+    tf2::Matrix3x3 rotMatrix(
+        forward.x(), right.x(), up.x(),
+        forward.y(), right.y(), up.y(),
+        forward.z(), right.z(), up.z()
+    );
+    tf2::Quaternion q;
+    rotMatrix.getRotation(q);
 
-    std::vector<float> quaternion(4);
-    
-    quaternion[0] = 0;
-    quaternion[1] = 0;
-    quaternion[2] = sin(yaw / 2);
-    quaternion[3] = cos(yaw / 2);
-
-    // std::cerr << "Quaternion: [x: " << quaternion[0]
-    // << ", y: " << quaternion[1]
-    // << ", z: " << quaternion[2]
-    // << ", w: " << quaternion[3]
-    // << ", degree: " << yaw * 180.0 / M_PI  << "]" << std::endl;
-
-    return quaternion;
+    return {static_cast<float>(q.x()), static_cast<float>(q.y()),
+            static_cast<float>(q.z()), static_cast<float>(q.w())};
 }

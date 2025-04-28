@@ -14,6 +14,7 @@ void Drone::initialize_pub_sub()
     ros::NodeHandle global_nh("~");
     image_sub = global_nh.subscribe("/iris" + id + "/usb_cam/image_raw", 10, &Drone::image_cb, this);
     image_pub_ = nh_.advertise<sensor_msgs::Image>("image", 10);
+    cam_ori_pub = global_nh.advertise<geometry_msgs::Quaternion>("/camera/orientation", 10);
 
     state_sub = nh_.subscribe<mavros_msgs::State>("mavros/state", 10, &Drone::state_cb, this);
     odom_sub = nh_.subscribe("mavros/local_position/pose", 10, &Drone::odom_cb, this);
@@ -90,6 +91,10 @@ void Drone::sp_pos_cb(const geometry_msgs::Pose& pos_sp)
 {
     sp_mode = SP_mode::kPos;
     sp_pose = pos_sp;
+
+
+    geometry_msgs::Quaternion cam_ori_msg = sp_pose.orientation;
+    cam_ori_pub.publish(cam_ori_msg);
 }
 
 void Drone::sp_vel_cb(const geometry_msgs::Twist& vel_sp)
@@ -153,10 +158,17 @@ bool Drone::initialize_drone()
     pose.pose.position.y = 0;
     pose.pose.position.z = 2;
 
+    geometry_msgs::Quaternion cam_ori_msg;
+    cam_ori_msg.x = 0.0;
+    cam_ori_msg.y = 0.0;
+    cam_ori_msg.z = 0.0;
+    cam_ori_msg.w = 1.0;
+
     //send a few setpoints before starting
     for(int i = 100; ros::ok() && i > 0; --i)
     {
         local_pos_pub.publish(pose);
+        cam_ori_pub.publish(cam_ori_msg);
         ros::spinOnce();
         rate.sleep();
     }
@@ -262,3 +274,4 @@ bool Drone::target_reached(double tol, Eigen::Vector3d target)  // Target is in 
     if((current_pose_vec-target).norm() < tol) return true;
     else return false;
 }
+

@@ -25,7 +25,7 @@ int main(int argc, char **argv){
 
 
     ns3::CommandLine cmd(__FILE__);
-    int num_nodes = 2;
+    int num_nodes = 1;
     cmd.AddValue("num_nodes", "the number of drone", num_nodes);
     cmd.Parse(argc, argv);
 

@@ -57,6 +57,7 @@ namespace rnl{
     {
         SSITEREACHED    = 1,    // SITE REACHED
         SMOVE           = 2,    // MOVING TO TARGET
+        SRECVIMAGE      = 4,
     };
 
     /**

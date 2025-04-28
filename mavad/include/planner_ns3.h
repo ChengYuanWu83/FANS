@@ -7,6 +7,7 @@
 #include "planner_ns3_utils.h"
 #include "ns3/core-module.h"
 #include <cmath>
+#include <unistd.h>
 #include <cv_bridge/cv_bridge.h>
 #include <opencv2/opencv.hpp>
 #include <yaml-cpp/yaml.h>
@@ -58,10 +59,11 @@ namespace rnl{
          */
         DroneSoc ();
         
-        void sendGoalPacket (const geometry_msgs::PoseStamped::ConstPtr& _pos);
+        void sendGoalPacket (const geometry_msgs::PoseStamped::ConstPtr& _pos);     //send position and orientation
         void sendArrivedPacket (uint32_t targetId);
         void sendMAVLinkPacket(uint32_t msgId, uint32_t targetId);
         void sendImagePacket();
+        void SendImageChunk(uint32_t i, uint32_t chunk_count, std::vector<uchar>& jpeg_buffer);
         
 
         /**
@@ -162,20 +164,22 @@ namespace rnl{
         int                           state; /**< State of the drone (cyw) */
         int                           lookaheadindex; /**< Look ahead index for the drone */
         int                           toggle_bc; /**< toggle broadcast on/off */
-
+        
         // cyw variable
+        int                           imagePublish; /**< image publish in ROS or store in PNG*/
         sensor_msgs::ImageConstPtr    imagePtr; /**< temporary store the image > */
         std::map<std::pair<uint8_t, uint8_t>, rnl::ImageReceiveBuffer> image_buffers_; /** pair<system id, image sequnce>,  image information**/
-
         
+
 
         ros::Publisher                drone_lk_ahead_pub;
         ros::Subscriber               drone_pos_sub;
         ros::Subscriber               drone_image_sub;
         ros::Publisher                arrive_response_pub;
         ros::Subscriber               target_pos_sub;
-        ros::Subscriber               target_pos_sub1;
-        ros::Subscriber               target_pos_sub2;
+        ros::Publisher                drone_image_pub;
+
+
 
         /**
          * @brief Initializes the ros parameters.
