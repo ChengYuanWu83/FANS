@@ -146,64 +146,64 @@ namespace rnl{
     * * p_loc (ns3::Vector3D)  - Location of the Parent \n
     * * bc_nbs (string)        - Broadcast Neighbours \n
     */
-    struct USMsg
-    {
-        std::string       msg_type = "u"; /**< Message type. "u" for unicast, "b" for broadcast */
-        int               source_id; /**< source index from which this message originated */
-        int               dst_id; /**< Destination index to which this message was intended to be sent */
-        std::string       nbs; /**< Information about my neighbours */
-        int               control; /**< Control information to receiver */
-        int               state; /**< State information of the sender */
-        int               p_id; /**< My Parent Index */
-        int               neigh_cnt;/**< My Neighbour Count */
-        ns3::Vector3D     p_loc; /**< My Parent Location */
-        std::string       bc_nbs; /**< Neighbours broadcasting to me */
+    // struct USMsg
+    // {
+    //     std::string       msg_type = "u"; /**< Message type. "u" for unicast, "b" for broadcast */
+    //     int               source_id; /**< source index from which this message originated */
+    //     int               dst_id; /**< Destination index to which this message was intended to be sent */
+    //     std::string       nbs; /**< Information about my neighbours */
+    //     int               control; /**< Control information to receiver */
+    //     int               state; /**< State information of the sender */
+    //     int               p_id; /**< My Parent Index */
+    //     int               neigh_cnt;/**< My Neighbour Count */
+    //     ns3::Vector3D     p_loc; /**< My Parent Location */
+    //     std::string       bc_nbs; /**< Neighbours broadcasting to me */
         
-        /**
-         * @brief Construct a new USMsg object
-         */
-        USMsg () ;
+    //     /**
+    //      * @brief Construct a new USMsg object
+    //      */
+    //     USMsg () ;
 
-        /**
-         * @brief Construct a new USMsg object
-         * 
-         * @param id source index
-         * @param dst destination index
-         * @param nbs serialized neighbour table
-         * @param co control value to destination node
-         * @param st my state 
-         * @param p my parent index
-         * @param neigh_count my neighbour count
-         * @param _ploc my parent location
-         */
-        USMsg 
-        (int                     id,
-        int                      dst,
-        const std::string&       nbs,
-        int                      co, 
-        int                      st,
-        int                      p,
-        int                      neigh_count,
-        ns3::Vector3D            _ploc
-        );
+    //     /**
+    //      * @brief Construct a new USMsg object
+    //      * 
+    //      * @param id source index
+    //      * @param dst destination index
+    //      * @param nbs serialized neighbour table
+    //      * @param co control value to destination node
+    //      * @param st my state 
+    //      * @param p my parent index
+    //      * @param neigh_count my neighbour count
+    //      * @param _ploc my parent location
+    //      */
+    //     USMsg 
+    //     (int                     id,
+    //     int                      dst,
+    //     const std::string&       nbs,
+    //     int                      co, 
+    //     int                      st,
+    //     int                      p,
+    //     int                      neigh_count,
+    //     ns3::Vector3D            _ploc
+    //     );
 
-        /**
-         * @brief Serialize the member attributes of this structure to a Unicast Message
-         * 
-         * @param loc Pointer to string to which this needs to be serialized
-         */
-        void serialize (std::string * loc);
+    //     /**
+    //      * @brief Serialize the member attributes of this structure to a Unicast Message
+    //      * 
+    //      * @param loc Pointer to string to which this needs to be serialized
+    //      */
+    //     void serialize (std::string * loc);
 
-        /**
-         * @brief Serialize the member attributes of this structure to a broadcast message.
-         * No personal member info serialized
-         * 
-         * @param loc Pointer to string to which this needs to be serialized
-         * @param id index
-         * @param pos Position 
-         */
-        void serializeBC (std::string * loc, int id, ns3::Vector3D pos);
-    };
+    //     /**
+    //      * @brief Serialize the member attributes of this structure to a broadcast message.
+    //      * No personal member info serialized
+    //      * 
+    //      * @param loc Pointer to string to which this needs to be serialized
+    //      * @param id index
+    //      * @param pos Position 
+    //      */
+    //     void serializeBC (std::string * loc, int id, ns3::Vector3D pos);
+    // };
 
     /**
     * @struct URMsg
@@ -246,103 +246,134 @@ namespace rnl{
     * * p_loc (ns3::Vector3D)  - Location of the Parent \n
     * * bc_nbs (string)        - Broadcast Neighbours \n
     */
-    struct URMsg
-    {
-        int               source_id; /**< Source id from where the message originated */
-        int               dst_id; /**< Destination ID, the desired location the message was sent to */
-        std::string       nbs; /**< Neighbourhood of the source ID */
-        int               control; /**< Control Command from source id to destination id */
-        int               state; /**< State of the source */
-        int               p_id; /**< Parent ID to be followed by the dst_id */
-        int               neigh_cnt; /**< Neighbour Count */
-        ns3::Vector3D     p_loc; /**< Location of Parent */
-        std::string       bc_nbs; /**< Broadcast neighbours of Source ID, known if rnl::USMsg::msg_type is "u"*/
+    // struct URMsg
+    // {
+    //     int               source_id; /**< Source id from where the message originated */
+    //     int               dst_id; /**< Destination ID, the desired location the message was sent to */
+    //     std::string       nbs; /**< Neighbourhood of the source ID */
+    //     int               control; /**< Control Command from source id to destination id */
+    //     int               state; /**< State of the source */
+    //     int               p_id; /**< Parent ID to be followed by the dst_id */
+    //     int               neigh_cnt; /**< Neighbour Count */
+    //     ns3::Vector3D     p_loc; /**< Location of Parent */
+    //     std::string       bc_nbs; /**< Broadcast neighbours of Source ID, known if rnl::USMsg::msg_type is "u"*/
 
-        /**
-         * @brief Construct a new URMsg object
-         */
-        URMsg ();
+    //     /**
+    //      * @brief Construct a new URMsg object
+    //      */
+    //     URMsg ();
         
-        /**
-         * @brief Construct a new URMsg object
-         * 
-         * @param id source id 
-         * @param dst destination id
-         * @param nbs neighbour table
-         * @param co control bit
-         * @param st state bit
-         * @param p parent id
-         * @param neigh_count neighbour count
-         * @param _ploc parent location
-         */
-        URMsg 
-        (int                     id,
-        int                      dst,
-        const std::string&       nbs,
-        int                      co,
-        int                      st,
-        int                      p,
-        int                      neigh_count,
-        ns3::Vector3D            _ploc
-        );
+    //     /**
+    //      * @brief Construct a new URMsg object
+    //      * 
+    //      * @param id source id 
+    //      * @param dst destination id
+    //      * @param nbs neighbour table
+    //      * @param co control bit
+    //      * @param st state bit
+    //      * @param p parent id
+    //      * @param neigh_count neighbour count
+    //      * @param _ploc parent location
+    //      */
+    //     URMsg 
+    //     (int                     id,
+    //     int                      dst,
+    //     const std::string&       nbs,
+    //     int                      co,
+    //     int                      st,
+    //     int                      p,
+    //     int                      neigh_count,
+    //     ns3::Vector3D            _ploc
+    //     );
         
-        /**
-         * @brief Parse an incoming Message 
-         * 
-         * @param msg Incoming message on the socket converted to string and passed here
-         */
-        void parse (std::string& msg);
+    //     /**
+    //      * @brief Parse an incoming Message 
+    //      * 
+    //      * @param msg Incoming message on the socket converted to string and passed here
+    //      */
+    //     void parse (std::string& msg);
 
-        /**
-         * @brief Parse an incoming Broadcast Message
-         * 
-         * @param msg If Incoming message is Broadcast parsed here 
-         */
-        void parseBroadcast (std::string& msg);
+    //     /**
+    //      * @brief Parse an incoming Broadcast Message
+    //      * 
+    //      * @param msg If Incoming message is Broadcast parsed here 
+    //      */
+    //     void parseBroadcast (std::string& msg);
 
-        /**
-         * @brief Parse an incoming Unicast Message
-         * 
-         * @param msg If Incoming message is Unicast parsed here
-         */
-        void parseUnicast   (std::string& msg);
+    //     /**
+    //      * @brief Parse an incoming Unicast Message
+    //      * 
+    //      * @param msg If Incoming message is Unicast parsed here
+    //      */
+    //     void parseUnicast   (std::string& msg);
 
-    };
+    // };
 
 
-    // cyw: for mavlink image decode
+    // [cyw]: for mavlink image decode
     struct ImageReceiveBuffer {
-        bool                    receiving;
-        uint32_t                image_size;
-        uint16_t                width;
-        uint16_t                height;
-        uint8_t                 packets;
-        uint8_t                 quality;
-        std::vector<uint8_t>    data;
-        std::vector<bool>       packet_received;
+        bool                    receiving;              /**< Is receiving image */
+        uint32_t                total_image_size;       /**< Expected total image size to receive (in bytes)*/
+        uint32_t                total_received;         /**< The size of the image currently received (in bytes)*/
+        uint16_t                width;                  /**< Width of a image*/
+        uint16_t                height;                 /**< Height of a image*/
+        std::vector<uint8_t>    data;                   /**< Image*/
+
+        uint8_t                 batch_idx;              /**< Index of current batch*/
+        uint32_t                batch_byte_offset;      /**< byte offset of current batch*/
+        uint8_t                 batch_packets;          /**< Expected number of packets received in this batch*/
+        std::vector<bool>       batch_packet_received;  /**< The number of packets currently received in this batch*/
+        
         int64_t                 last_update;
         
-        ImageReceiveBuffer() : receiving(false), image_size(0), width(0), height(0), 
-                               packets(0), quality(0) {}
+        ImageReceiveBuffer() : receiving(false), total_image_size(0), width(0), height(0), 
+                                batch_packets(0), batch_idx(0) {}
                                
         void reset() {
             receiving = false;
-            image_size = 0;
+            total_image_size = 0;
+            total_received = 0;
             width = 0;
             height = 0;
-            packets = 0;
-            quality = 0;
             data.clear();
-            packet_received.clear();
+
+            batch_idx = 0;
+            batch_byte_offset = 0;
+            batch_packets = 0;
+            batch_packet_received.clear();
             last_update = ns3::Simulator::Now().GetMicroSeconds();
         }
-        
-        bool isComplete() {
-            if (!receiving) return false;
-            for (bool received : packet_received) {
-                if (!received) return false;
+
+        bool isBatchComplete() {
+            for (size_t i = 0; i < batch_packet_received.size(); ++i) {
+                if (!batch_packet_received[i]) {
+                    return false;
+                }
             }
             return true;
+        }
+        
+        bool isImageComplete() {
+            if (total_received >= total_image_size) {
+                std::cerr << "Full image received: " << total_received << " bytes." << std::endl;
+                receiving = false;
+                return true;
+            }
+            return false;
+        }
+    };
+
+    struct ImageInfo {
+        int     rows;
+        int     cols;
+        size_t  buffer_size;
+        
+        ImageInfo() : rows(0), cols(0), buffer_size(0) {}
+
+        void reset() {
+            rows = 0;
+            cols = 0;
+            buffer_size = 0;
         }
     };
 };

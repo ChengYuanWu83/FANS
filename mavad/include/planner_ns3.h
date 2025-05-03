@@ -60,10 +60,11 @@ namespace rnl{
         DroneSoc ();
         
         void sendGoalPacket (const geometry_msgs::PoseStamped::ConstPtr& _pos);     //send position and orientation
-        void sendArrivedPacket (uint32_t targetId);
+        void sendArrivedPacket (uint32_t targetId, uint32_t cmdId);
         void sendMAVLinkPacket(uint32_t msgId, uint32_t targetId);
         void sendImagePacket();
-        void SendImageChunk(uint32_t i, uint32_t chunk_count, std::vector<uchar>& jpeg_buffer);
+        void sendImageChunk(uint32_t i, uint32_t chunk_count, std::vector<uchar>& jpeg_buffer);
+        void sendNextImageBatch();
         
 
         /**
@@ -155,8 +156,6 @@ namespace rnl{
         int                           anch_id; /**< Anchoring Id if any */
         int                           circle_dir; /**Circling direction */
         ns3::Vector3D                 anch_pos; /**< Anchoring position */
-        rnl::USMsg                    msg_send; /**< message to send */
-        rnl::URMsg                    msg_rec; /**< Message received */
         rnl::Nbt                      nbt; /**< Neighbour table */
         std::vector<ns3::Vector3D>    wpts; /**< Waypoints that drone needs to follow */
         ns3::Vector3D                 pos; /**< Current position of the drone */
@@ -166,8 +165,13 @@ namespace rnl{
         int                           toggle_bc; /**< toggle broadcast on/off */
         
         // cyw variable
-        int                           imagePublish; /**< image publish in ROS or store in PNG*/
-        sensor_msgs::ImageConstPtr    imagePtr; /**< temporary store the image > */
+        int                             jpeg_quality; /**< Desired image quality for jpeg compression [1-100]*/
+        bool                            imagePublish; /**< Image publish in ROS or store in PNG*/
+        sensor_msgs::ImageConstPtr      imagePtr; /**< temporary store the image > */
+        std::queue<std::vector<uchar>>  image_batch_queue;
+        bool batch_in_progress = false;
+        uint8_t current_batch_idx = 0;
+        rnl::ImageInfo image_info;
         std::map<std::pair<uint8_t, uint8_t>, rnl::ImageReceiveBuffer> image_buffers_; /** pair<system id, image sequnce>,  image information**/
         
 
@@ -246,8 +250,10 @@ namespace rnl{
              * 
              * @param verb Is verbose required
              * @param pcap_enable Is pcap and ascii tracing is required
+             * @param band_5GHz_enable Use 5GHz band, otherwise use 2.4GHz
+             * 
              */
-            void setWifi(bool verb, bool pcap_enable);
+            void setWifi(bool verb, bool pcap_enable, bool band_5GHz_enable);
 
             /**
              * @brief Set the Internet
@@ -351,9 +357,14 @@ namespace rnl{
             void initializeBuilding ();
 
             /**
-             * @brief Initialize sockets
+             * @brief   Initialize sockets
+             * 
+             * @param   dist_gcs2building   Distance of GCS from the center of the building (meters)
+             * @param   _jpeg_quality       Desired image quality for jpeg compression [1-100]
+             * @param   _imagePublish       Image publish in ROS or store in PNG
+             * 
              */
-            void initializeSockets ();
+            void initializeSockets (double dist_gcs2building, double _jpeg_quality, bool _imagePublish);
 
             /**
              * @brief Set the Initial Leader Explore Path

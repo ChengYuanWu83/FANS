@@ -76,7 +76,7 @@ void rnl::Properties::initialize(bool rt, bool chsum )
     std::cerr<<"Initialization of Properties Completed..."<<std::endl;
 }
 
-void rnl::Properties::setWifi(bool verbose, bool pcap_enable)
+void rnl::Properties::setWifi(bool verbose, bool pcap_enable, bool band_5GHz_enable)
 {
     // The below set of helpers will help us to put together the wifi NICs we want
     if (verbose)
@@ -99,6 +99,19 @@ void rnl::Properties::setWifi(bool verbose, bool pcap_enable)
     // wifiPhy.Set ("TxPowerEnd", ns3::DoubleValue (20.0));
 
     // wifiPhy.Set ("ShortPlcpPreambleSupported", ns3::BooleanValue (true) );
+    
+    if(band_5GHz_enable){
+        // wifiPhy.Set("PhyBand", ns3::EnumValue(ns3::WifiPhyBand::WIFI_PHY_BAND_5GHZ));
+        wifiPhy.Set("Frequency", ns3::UintegerValue(5180));
+    }
+    else{
+        // wifiPhy.Set("PhyBand", ns3::EnumValue(ns3::WifiPhyBand::WIFI_PHY_BAND_2_4GHZ));
+        wifiPhy.Set("Frequency", ns3::UintegerValue(2412));
+    }
+    
+    
+    // wifiPhy.Set("Frequency", UintegerValue(frequency)); // Set to frequency MHz frequency band
+
 
     wifiPhy.SetPcapDataLinkType (ns3::YansWifiPhyHelper::DLT_IEEE802_11);
 
@@ -335,6 +348,73 @@ void rnl::DroneSoc::receivePacket(ns3::Ptr<ns3::Socket> soc)
                         break;
                     }
 
+                    case MAVLINK_MSG_ID_COMMAND_ACK:
+                    {
+                        mavlink_command_ack_t ack;
+                        mavlink_msg_command_ack_decode(&msg, &ack);
+                        
+                        if(ack.target_system != this->id){
+                            // std::cerr << "Received packet not belong to it. Discard" << std::endl; 
+                            return;
+                        }
+                        
+                        // Handle command acknowledgment
+                        std::stringstream ss;
+                        ss << unsigned(msg.sysid) << ":";
+                        
+                        if(ack.command == MAV_CMD_NAV_WAYPOINT && ack.result == MAV_RESULT_ACCEPTED){
+                            ss << " drone arrived at waypoint";
+                            
+                            // If this is acknowledgment for an image batch
+                            if(ack.progress == 101) { // Special value for image batches
+                                ss << " and image batch " << (int)ack.result_param2 << " received";
+                                
+
+                            }
+                            std_msgs::String response;
+                            response.data = ss.str();
+                            
+                            this->arrive_response_pub.publish(response);
+                        }
+                        if(ack.command == MAV_CMD_IMAGE_START_CAPTURE && ack.result == MAV_RESULT_ACCEPTED){
+                            ss << " drone arrived at waypoint";
+                            // Move to next batch if we're the image sender
+                            if(this->batch_in_progress) {
+                                this->current_batch_idx++;
+
+                                // If there are more batches to send, schedule the next one
+                                if(!this->image_batch_queue.empty()) {
+                                    ns3::Simulator::ScheduleNow(&rnl::DroneSoc::sendNextImageBatch, this);
+                                }
+                                else {
+                                    this->batch_in_progress = false;
+                                    std::cerr << "All image batches sent successfully" << std::endl;
+                                }
+                            }
+                        }
+                        else if(ack.result == MAV_RESULT_FAILED) {
+                            ss << " command failed";
+                        }
+                        else if(ack.result == MAV_RESULT_UNSUPPORTED) {
+                            ss << " command unsupported";
+                        }
+                        else if(ack.result == MAV_RESULT_TEMPORARILY_REJECTED) {
+                            ss << " command temporarily rejected";
+                        }
+                        else if(ack.result == MAV_RESULT_DENIED) {
+                            ss << " command denied";
+                        }
+                        else {
+                            ss << " unknown result: " << ack.result;
+                        }
+
+
+                        std::cerr << "Node: " << this->id << " received command acknowledgment from " 
+                                 << inetSenderAddr.GetIpv4() << " (node " << unsigned(msg.sysid) << "): " 
+                                 << ss.str() << std::endl;
+                        break;
+                    }
+
                     case MAVLINK_MSG_ID_DATA_TRANSMISSION_HANDSHAKE: // image metadata packet
                     {  
 
@@ -352,40 +432,46 @@ void rnl::DroneSoc::receivePacket(ns3::Ptr<ns3::Socket> soc)
                         if (handshake.type == MAVLINK_DATA_STREAM_IMG_JPEG) {
                             std::cerr << "Received image handshake: " << handshake.size << " bytes, " 
                                       << handshake.width << "x" << handshake.height << ", " 
-                                      << static_cast<int>(handshake.packets) << " packets, quality " 
+                                      << static_cast<int>(handshake.packets) << " packets, batch index:" 
                                       << static_cast<int>(handshake.jpg_quality) << std::endl;
-                            
+
+
                             auto& buffer = image_buffers_[sender];
-                            buffer.reset();
-                            buffer.receiving = true;
-                            buffer.image_size = handshake.size;
-                            buffer.width = handshake.width;
-                            buffer.height = handshake.height;
-                            buffer.packets = handshake.packets;
-                            buffer.quality = handshake.jpg_quality;
-                            buffer.data.resize(handshake.size);
-                            buffer.packet_received.resize(handshake.packets, false);
+                            if (handshake.jpg_quality == 0) {
+                                // First batch: Initialize
+                                buffer.reset();
+                                buffer.receiving = true;
+                                buffer.total_image_size = handshake.size;
+                                buffer.total_received = 0;
+                                buffer.width = handshake.width;
+                                buffer.height = handshake.height;
+                                buffer.data.resize(handshake.size);
+                            }
+                            
+                            buffer.batch_idx = handshake.jpg_quality;
+                            buffer.batch_byte_offset = buffer.total_received;
+                            buffer.batch_packets = handshake.packets;
+                            buffer.batch_packet_received.resize(handshake.packets, false);
+                            // buffer.packet_received.resize(handshake.packets, false);
                             buffer.last_update = ns3::Simulator::Now().GetMicroSeconds();
                         }
                         break;
                     }
 
                     case MAVLINK_MSG_ID_ENCAPSULATED_DATA: 
-                    {           
+                    {
+                        
                         if(this->id > 0){
-							// std::cerr << "Received packet not belong to it. Discard" << std::endl; 
+							std::cerr << "Received packet not belong to it. Discard" << std::endl; 
 							return;
 						}
                         std::pair<uint8_t, uint8_t> sender(msg.sysid, msg.compid);
-                        // std::cerr << "ED: "<< static_cast<int>(msg.sysid) <<  "," << static_cast<int>(msg.compid) << std::endl;
 
                         auto it = image_buffers_.find(sender);
                         if (it == image_buffers_.end() || !it->second.receiving) {
                             // Make sure we are receiving an image
-                            std::cerr << "why:" << std::endl;
                             break;
                         }
-                        
                         auto& buffer = it->second;
                         buffer.last_update = ns3::Simulator::Now().GetMicroSeconds();
 
@@ -393,27 +479,33 @@ void rnl::DroneSoc::receivePacket(ns3::Ptr<ns3::Socket> soc)
                         mavlink_msg_encapsulated_data_decode(&msg, &img_data);
                         
                         // Check if the package number is valid
-                        if (img_data.seqnr >= buffer.packets) {
+                        if (img_data.seqnr >= buffer.batch_packets) {
                             std::cerr << "Invalid packet sequence number: " << static_cast<int>(img_data.seqnr) 
-                              << " (max: " << static_cast<int>(buffer.packets - 1) << ")" << std::endl;
+                              << " (max: " << static_cast<int>(buffer.batch_packets - 1) << ")" << std::endl;
                             break;
                         }
-                        
                         // Calculate where this packet should be placed
                         const size_t CHUNK_SIZE = MAVLINK_MSG_ENCAPSULATED_DATA_FIELD_DATA_LEN; // 253 bytes
-                        size_t offset = img_data.seqnr * CHUNK_SIZE;
-                        size_t bytes_to_copy = std::min(CHUNK_SIZE, buffer.image_size - offset);
-                        
+                        size_t offset = buffer.batch_byte_offset + img_data.seqnr * CHUNK_SIZE;
+                        size_t bytes_to_copy = std::min(CHUNK_SIZE, buffer.total_image_size - offset);
+
                         if (offset + bytes_to_copy <= buffer.data.size()) {
 
                             memcpy(&buffer.data[offset], img_data.data, bytes_to_copy);
-                            buffer.packet_received[img_data.seqnr] = true;
+                            buffer.total_received += bytes_to_copy;
+                            buffer.batch_packet_received[img_data.seqnr] = true;
                             
                             std::cerr << "Received image packet " << static_cast<int>(img_data.seqnr + 1) 
-                              << "/" << static_cast<int>(buffer.packets) << std::endl;
+                              << "/" << static_cast<int>(buffer.batch_packets) << std::endl;
                             
+                              if(buffer.isBatchComplete()){
+                                std::cerr << "All image packets in "<< static_cast<int>(buffer.batch_idx)<<" batches received, sending ACK..." << std::endl;
+                                
+                                this->sendArrivedPacket(msg.sysid, MAV_CMD_IMAGE_START_CAPTURE);
+                            }
+
                             // Check if all packets have been received
-                            if (buffer.isComplete()) {
+                            if (buffer.isImageComplete()) {
                                 std::cerr << "All image packets received, decoding..." << std::endl;
                                 cv::Mat image = cv::imdecode(buffer.data, cv::IMREAD_COLOR);
 
@@ -473,7 +565,46 @@ void rnl::DroneSoc::receivePacket(ns3::Ptr<ns3::Socket> soc)
 
 } 
 
-void rnl::DroneSoc::SendImageChunk(uint32_t i, uint32_t chunk_count, std::vector<uchar>& jpeg_buffer) {
+void rnl::DroneSoc::sendNextImageBatch() {
+    std::cerr << "sendNextImageBatch" << std::endl;
+    if (this->batch_in_progress || this->image_batch_queue.empty()) {
+        return;
+    }
+    
+    this->batch_in_progress = true;
+    std::vector<uchar> batch_buffer_ = this->image_batch_queue.front();
+    this->image_batch_queue.pop();
+    
+    // Calculate chunk count for this batch
+    const size_t CHUNK_SIZE = MAVLINK_MSG_ENCAPSULATED_DATA_FIELD_DATA_LEN;
+    size_t chunk_count = (batch_buffer_.size() + CHUNK_SIZE - 1) / CHUNK_SIZE;
+    
+    // === Step 1: Handshake for this batch ===
+    mavlink_data_transmission_handshake_t handshake;
+    handshake.type = MAVLINK_DATA_STREAM_IMG_JPEG;
+    handshake.size = this->image_info.buffer_size;
+    handshake.width = this->image_info.cols;
+    handshake.height = this->image_info.rows;
+    handshake.packets = chunk_count;
+    handshake.payload = CHUNK_SIZE;
+    handshake.jpg_quality = this->current_batch_idx; // Use for batch index tracking
+    
+    mavlink_message_t handshake_msg;
+    mavlink_msg_data_transmission_handshake_encode(this->id, 200, &handshake_msg, &handshake);
+    
+    uint8_t handshake_buffer[MAVLINK_MAX_PACKET_LEN];
+    uint16_t handshake_len = mavlink_msg_to_send_buffer(handshake_buffer, &handshake_msg);
+    ns3::Ptr<ns3::Packet> packet = ns3::Create<ns3::Packet>(handshake_buffer, handshake_len);
+    this->source_bc->Send(packet);
+    
+    std::cerr << "Sent handshake for batch " << this->current_batch_idx + 1 << "/" 
+              << this->image_batch_queue.size() + 1 << " (" << chunk_count << " chunks)" << std::endl;
+    
+    // Schedule chunk sending for this batch
+    ns3::Simulator::ScheduleNow(&rnl::DroneSoc::sendImageChunk, this, 0, chunk_count, batch_buffer_);
+}
+
+void rnl::DroneSoc::sendImageChunk(uint32_t i, uint32_t chunk_count, std::vector<uchar>& jpeg_buffer) {
     if (i >= chunk_count) {
         std::cerr << "Image transmission complete" << std::endl;
         return;
@@ -503,12 +634,11 @@ void rnl::DroneSoc::SendImageChunk(uint32_t i, uint32_t chunk_count, std::vector
     this->source_bc->Send (packet);
     std::cerr << "Sending MAVLink image chunk "<< unsigned(i+1) <<"/" << unsigned(chunk_count) << ", size: "<< unsigned(bytes_to_copy) << " bytes" << std::endl;
 
-    ns3::Simulator::Schedule(ns3::MilliSeconds(5), &rnl::DroneSoc::SendImageChunk, this, i + 1, chunk_count, jpeg_buffer);
+    ns3::Simulator::Schedule(ns3::MilliSeconds(5), &rnl::DroneSoc::sendImageChunk, this, i + 1, chunk_count, jpeg_buffer);
 }
 
 
 void rnl::DroneSoc::sendImagePacket(){
-	int jpeg_quality_ = 80;
 
 	// Convert ROS image to OpenCV format
 	cv_bridge::CvImageConstPtr cv_ptr = cv_bridge::toCvShare(this->imagePtr, "bgr8");
@@ -517,82 +647,134 @@ void rnl::DroneSoc::sendImagePacket(){
 	std::vector<uchar> jpeg_buffer;
 	std::vector<int> compression_params;
 	compression_params.push_back(cv::IMWRITE_JPEG_QUALITY);
-	compression_params.push_back(jpeg_quality_);
+	compression_params.push_back(this->jpeg_quality);
 	
 	cv::imencode(".jpg", cv_ptr->image, jpeg_buffer, compression_params);
+
+    this->image_info.reset();
+    this->image_info.rows = cv_ptr->image.rows;
+    this->image_info.cols = cv_ptr->image.cols;
+    this->image_info.buffer_size = jpeg_buffer.size();
 	
 	// Calculate the number of chunks needed
 	const size_t CHUNK_SIZE = MAVLINK_MSG_ENCAPSULATED_DATA_FIELD_DATA_LEN; // 253 bytes
-	size_t chunk_count = (jpeg_buffer.size() + CHUNK_SIZE - 1) / CHUNK_SIZE;
+    const size_t MAX_CHUNKS = 255;
+	size_t total_chunk_count = (jpeg_buffer.size() + CHUNK_SIZE - 1) / CHUNK_SIZE;
+    size_t total_batch_count = (total_chunk_count + MAX_CHUNKS - 1) / MAX_CHUNKS;
 	
-	if (chunk_count > 255) {
-		std::cerr << "Image too large for MAVLink transmission (needs " << chunk_count <<" chunks)" << std::endl;
-		return;
+	if (total_batch_count > 1) {
+		std::cerr << "Image too large for MAVLink transmission (needs " << total_chunk_count <<" chunks)" << std::endl;
+		// return;
 	}
 
-	// Send DATA_TRANSMISSION_HANDSHAKE message, which describe the image to be sent
-	mavlink_message_t handshake_msg;
-	mavlink_data_transmission_handshake_t handshake;
-	handshake.type = MAVLINK_DATA_STREAM_IMG_JPEG;
-	handshake.size = jpeg_buffer.size();
-	handshake.width = cv_ptr->image.cols;
-	handshake.height = cv_ptr->image.rows;
-	handshake.packets = chunk_count;
-	handshake.payload = CHUNK_SIZE;
-	handshake.jpg_quality = jpeg_quality_;
+    for (size_t batch_idx = 0; batch_idx < total_batch_count; ++batch_idx) {
+        size_t batch_chunk_start = batch_idx * MAX_CHUNKS;
+        size_t batch_chunk_end = std::min(batch_chunk_start + MAX_CHUNKS, total_chunk_count);
+
+        size_t byte_start = batch_chunk_start * CHUNK_SIZE;
+        size_t byte_end = std::min(byte_start + MAX_CHUNKS * CHUNK_SIZE, jpeg_buffer.size());
+
+        std::vector<uchar> batch_buffer(jpeg_buffer.begin() + byte_start, jpeg_buffer.begin() + byte_end);
+        image_batch_queue.push(batch_buffer);
+        
+        
+    }
+    this->sendNextImageBatch();
+
+	// // Send DATA_TRANSMISSION_HANDSHAKE message, which describe the image to be sent
+	// mavlink_message_t handshake_msg;
+	// mavlink_data_transmission_handshake_t handshake;
+	// handshake.type = MAVLINK_DATA_STREAM_IMG_JPEG;
+	// handshake.size = jpeg_buffer.size();
+	// handshake.width = cv_ptr->image.cols;
+	// handshake.height = cv_ptr->image.rows;
+	// handshake.packets = chunk_count;
+	// handshake.payload = CHUNK_SIZE;
+	// handshake.jpg_quality = this->jpeg_quality;
 	
-	mavlink_msg_data_transmission_handshake_encode(this->id, 200, &handshake_msg, &handshake);
+	// mavlink_msg_data_transmission_handshake_encode(this->id, 200, &handshake_msg, &handshake);
 	
-	// Get the serialized message
-	uint8_t handshake_buffer[MAVLINK_MAX_PACKET_LEN];
-	uint16_t handshake_len = mavlink_msg_to_send_buffer(handshake_buffer, &handshake_msg);
+	// // Get the serialized message
+	// uint8_t handshake_buffer[MAVLINK_MAX_PACKET_LEN];
+	// uint16_t handshake_len = mavlink_msg_to_send_buffer(handshake_buffer, &handshake_msg);
 
-	ns3::Ptr<ns3::Packet> packet = ns3::Create<ns3::Packet> (handshake_buffer, handshake_len);
-    this->source_bc->Send (packet);
-    std::cerr <<"Arrived target. Send imgae to GCS" << std::endl;
+	// ns3::Ptr<ns3::Packet> packet = ns3::Create<ns3::Packet> (handshake_buffer, handshake_len);
+    // this->source_bc->Send (packet);
+    // std::cerr <<"Arrived target. Send imgae to GCS" << std::endl;
 
-    // Send the image data chunks
-    ns3::Simulator::ScheduleNow(&rnl::DroneSoc::SendImageChunk, this, 0, chunk_count, jpeg_buffer);
+    // // Send the image data chunks
+    // ns3::Simulator::ScheduleNow(&rnl::DroneSoc::SendImageChunk, this, 0, chunk_count, jpeg_buffer);
 
-    // for (size_t i = 0; i < chunk_count; i++) {
-    //     mavlink_message_t data_msg;
-    //     mavlink_encapsulated_data_t img_data;
-    //     img_data.seqnr = i;
-        
-    //     // Fill the data field
-    //     size_t bytes_to_copy = (i == chunk_count - 1) ? 
-    //         (jpeg_buffer.size() - i * CHUNK_SIZE) : CHUNK_SIZE;
-        
-    //     memset(img_data.data, 0, CHUNK_SIZE);
-    //     memcpy(img_data.data, &jpeg_buffer[i * CHUNK_SIZE], bytes_to_copy);
-        
-    //     // Encode the message
-    //     mavlink_msg_encapsulated_data_encode(this->id, 200, &data_msg, &img_data);
-        
-    //     // Get the serialized message
-    //     uint8_t data_buffer[MAVLINK_MAX_PACKET_LEN];
-    //     uint16_t data_len = mavlink_msg_to_send_buffer(data_buffer, &data_msg);
-        
-    //     // In a real application, you would send this buffer over your communication channel
-    //     ns3::Ptr<ns3::Packet> packet = ns3::Create<ns3::Packet> (data_buffer, data_len);
-    //     this->source_bc->Send (packet);
-    //     std::cerr << "Sending MAVLink image chunk "<< unsigned(i+1) <<"/" << unsigned(chunk_count) << ", size: "<< unsigned(bytes_to_copy) << " bytes" << std::endl;
-    // }
-    
-    // std::cerr << "Image transmission complete" << std::endl;
 }
 
-void rnl::DroneSoc::sendArrivedPacket(uint32_t targetId){
+void rnl::DroneSoc::sendArrivedPacket(uint32_t targetId, uint32_t cmdId){
     mavlink_message_t msg;
     uint8_t buf[MAVLINK_MAX_PACKET_LEN];
 
-    mavlink_msg_mission_ack_pack(this->id, 200, &msg, targetId, 200, MAV_RESULT_ACCEPTED, MAV_MISSION_ACCEPTED, MAV_MISSION_TYPE_MISSION);
+    // mavlink_msg_mission_ack_pack(this->id, 200, &msg, targetId, 200, MAV_RESULT_ACCEPTED, MAV_MISSION_ACCEPTED, MAV_MISSION_TYPE_MISSION);
+    // uint16_t len = mavlink_msg_to_send_buffer(buf, &msg);
+
+    // ns3::Ptr<ns3::Packet> packet = ns3::Create<ns3::Packet> (buf, len);
+    // this->source_bc->Send (packet);
+    // std::cerr <<"Arrived target. Send ACK to GCS" << std::endl;
+    switch (cmdId)
+    {
+        case MAV_CMD_NAV_WAYPOINT:
+        {
+            mavlink_msg_command_ack_pack(
+                this->id,            // Sender system ID
+                200,                 // Sender component ID
+                &msg,                // Message to pack into
+                MAV_CMD_NAV_WAYPOINT,// Command being acknowledged
+                MAV_RESULT_ACCEPTED, // Result code
+                100,                 // Progress (100 = complete)
+                0,                   // result_param2 (unused)
+                targetId,            // Target system ID
+                200                  // Target component ID
+            );
+            break;
+        }
+        
+        case MAV_CMD_IMAGE_START_CAPTURE:
+        {
+            std::pair<uint8_t, uint8_t> sender(msg.sysid, msg.compid);
+            
+            mavlink_msg_command_ack_pack(
+                this->id,            // Sender system ID
+                200,                 // Sender component ID
+                &msg,                // Message to pack into
+                MAV_CMD_IMAGE_START_CAPTURE,// Command being acknowledged
+                MAV_RESULT_ACCEPTED, // Result code
+                this->image_buffers_[sender].batch_idx,                 // Progress (100 = complete)
+                0,                     // result_param2 (unused)
+                targetId,            // Target system ID
+                200                  // Target component ID
+            );
+            break;
+        }
+
+        default:
+            break;
+    }
+    
     uint16_t len = mavlink_msg_to_send_buffer(buf, &msg);
 
-    ns3::Ptr<ns3::Packet> packet = ns3::Create<ns3::Packet> (buf, len);
-    this->source_bc->Send (packet);
-    std::cerr <<"Arrived target. Send ACK to GCS" << std::endl;
+    ns3::Ptr<ns3::Packet> packet = ns3::Create<ns3::Packet>(buf, len);
+    this->source_bc->Send(packet);
+    std::cerr << "Arrived target. Send COMMAND_ACK to GCS" << std::endl;
 }
+
+// void rnl::DroneSoc::sendImageACKPacket(uint32_t targetId){
+//     mavlink_message_t msg;
+//     uint8_t buf[MAVLINK_MAX_PACKET_LEN];
+
+//     mavlink_msg_mission_ack_pack(this->id, 200, &msg, targetId, 200, MAV_RESULT_ACCEPTED, MAV_MISSION_ACCEPTED, MAV_MISSION_TYPE_MISSION);
+//     uint16_t len = mavlink_msg_to_send_buffer(buf, &msg);
+
+//     ns3::Ptr<ns3::Packet> packet = ns3::Create<ns3::Packet> (buf, len);
+//     this->source_bc->Send (packet);
+//     std::cerr <<"Arrived target. Send ACK to GCS" << std::endl;
+// }
 
 void rnl::DroneSoc::sendGoalPacket (const geometry_msgs::PoseStamped::ConstPtr& _pos) { // send position  and orientation
     
@@ -688,7 +870,7 @@ void rnl::Planner::initializeBuilding()
 {
     // Building
     ns3::Ptr<ns3::Building> building1 = ns3::CreateObject<ns3::Building>();
-    building1->SetBoundaries(ns3::Box(-5.0, 5.0, -5.0, 5.0, 0.0, 5.0));  //x_min, x_max, y_min, y_max, z_min, z_max
+    building1->SetBoundaries(ns3::Box(-3.0, 3.0, -3.0, 3.0, 0.0, 3.0));  //x_min, x_max, y_min, y_max, z_min, z_max
     building1->SetBuildingType(ns3::Building::Office);
     building1->SetExtWallsType(ns3::Building::ConcreteWithWindows);
     building1->SetNFloors(12);
@@ -739,8 +921,7 @@ void rnl::Planner::initializeRosParams()
 }
 
 
-
-void rnl::Planner::initializeSockets ()
+void rnl::Planner::initializeSockets (double dist_gcs2building, double _jpeg_quality, bool _imagePublish)
 {
     nsocs.clear();
     for (int i = 0 ; i < num_nodes + 1; ++i)
@@ -749,10 +930,11 @@ void rnl::Planner::initializeSockets ()
         _dsoc.id       = i; 
         _dsoc.setBcSender (wifi_prop.c.Get(i), wifi_prop.tid_val());
         _dsoc.toggle_bc = 1;
-        _dsoc.imagePublish = 1;
+        _dsoc.imagePublish = _imagePublish;
+        _dsoc.jpeg_quality = _jpeg_quality;
         
         if(i == 0){
-            _dsoc.pos      = ns3::Vector3D(10.0, 0.0 , 0.0);
+            _dsoc.pos      = ns3::Vector3D(dist_gcs2building, 0.0 , 0.0);
         }
         else {
             std::string filename    = std::string(std::getenv("HOME")) + "/fans_ws/src/pci/config/uav" + std::to_string(i) + ".yaml";
@@ -818,8 +1000,8 @@ void rnl::Planner::updateSocs ()
   for (int i = 1; i < num_nodes + 1; ++i)
   {
         if (rnl::Planner::siteReached (nsocs[i].pos, nsocs[i].goal, i) && nsocs[i].state != SSITEREACHED){
-            ns3::Simulator::Schedule (ns3::MilliSeconds(2500), &rnl::DroneSoc::sendImagePacket, &nsocs[i]); //wait 2.5s for uav be stable
-            ns3::Simulator::Schedule (ns3::MilliSeconds(4000), &rnl::DroneSoc::sendArrivedPacket, &nsocs[i], 0); // 0 is the id of gcs
+            ns3::Simulator::Schedule (ns3::MilliSeconds(2500), &rnl::DroneSoc::sendImagePacket, &nsocs[i]); // Wait 2.5 seconds for the drone to stabilize
+            // ns3::Simulator::Schedule (ns3::MilliSeconds(4000), &rnl::DroneSoc::sendArrivedPacket, &nsocs[i], 0, MAV_CMD_NAV_WAYPOINT); // 0 is the id of gcs
             nsocs[i].state = SSITEREACHED;
             rnl::posHold (&nsocs[i].wpts, nsocs[i].pos);
             nsocs[i].lookaheadindex = 0;

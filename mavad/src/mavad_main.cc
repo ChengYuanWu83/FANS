@@ -23,18 +23,36 @@ int main(int argc, char **argv){
     ros::NodeHandle nh;
     ros::NodeHandle nh_private("~");
 
-
     ns3::CommandLine cmd(__FILE__);
     int num_nodes = 1;
-    cmd.AddValue("num_nodes", "the number of drone", num_nodes);
+    int jpeg_quality = 75;
+    double dist_gcs2building = 25.0;
+    bool band_5GHz_enable = false;
+    bool save_image_enable = false;
+    cmd.AddValue("num", "The number of drone", num_nodes);
+    cmd.AddValue("quality", "Desired image quality for jpeg compression [1-100]", jpeg_quality);
+    cmd.AddValue("dist", "Distance of GCS from the center of the building (meters)", dist_gcs2building);
+    cmd.AddValue("band_5G", "Using 2.4GHz frequency band on WiFi", band_5GHz_enable);
+    cmd.AddValue("save_image", "Image publish in ROS or store in PNG", save_image_enable);
+    
     cmd.Parse(argc, argv);
+
+
+    std::cout << "======= Simulation Parameters ======= " << std::endl;
+    std::cout << "  Number of drones         : " << num_nodes << std::endl;
+    std::cout << "  JPEG quality             : " << jpeg_quality << std::endl;
+    std::cout << "  GCS-to-building distance : " << dist_gcs2building << " meters" << std::endl;
+    std::cout << "  5GHz band enabled        : " << std::boolalpha << band_5GHz_enable << std::endl;
+    std::cout << "  Store image in PNG enabled        : " << std::boolalpha << save_image_enable << std::endl;
+    std::cout << "===================================== " << std::endl;
+
 
     /**
      * Create an object of properties, give phyMode, rss value and number of nodes 
      */
     Properties prop ("DsssRate11Mbps",-80, num_nodes);
     prop.initialize(true, true); /**< Initializing with realtime simulation and with checksum enabled*/
-    prop.setWifi (false, true); /**<Set wifi without debug and enable pcap and ascii tracing*/
+    prop.setWifi (false, true, band_5GHz_enable); /**<Set wifi without debug and enable pcap and ascii tracing*/
     prop.setInternet (); /**< Set IP*/
 
     /**
@@ -47,7 +65,7 @@ int main(int argc, char **argv){
                                    float _stopTime     <simulation stop time> original: 2500.0
      */
     rnl::Planner plan (nh, nh_private, prop, num_nodes, 0.2, 0.1, 2500.0);  
-    plan.initializeSockets ();
+    plan.initializeSockets (dist_gcs2building, jpeg_quality, save_image_enable);
     plan.startSimul();
     return 0;
 }
