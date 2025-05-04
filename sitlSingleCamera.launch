@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<launch>
+    <!-- MAVROS posix SITL environment launch script -->
+    <!-- launches Gazebo environment and 2x: MAVROS, PX4 SITL, and spawns vehicle -->
+    <!-- vehicle model and world -->
+    <!-- cyw: we store our world in pci folder -->
+    <!-- world_name options: donaldBren, racingCar, apartment -->
+    <arg name="world_name" default="apartment"/>
+    <arg name="world" default="$(find pci)/worlds/$(arg world_name).world"/>
+    <!-- gazebo configs -->
+    <arg name="gui" default="true"/>
+    <arg name="debug" default="false"/>
+    <arg name="verbose" default="false"/>
+    <arg name="paused" default="false"/>
+    <!-- Gazebo sim -->
+    <include file="$(find gazebo_ros)/launch/empty_world.launch">
+        <arg name="gui" value="$(arg gui)"/>
+        <arg name="world_name" value="$(arg world)"/>
+        <arg name="debug" value="$(arg debug)"/>
+        <arg name="verbose" value="$(arg verbose)"/>
+        <arg name="paused" value="$(arg paused)"/>
+    </include>
+    <!-- spawn vehicle -->
+    <node name="camera_spawn" output="screen" pkg="gazebo_ros" type="spawn_model" args="-file $(find mavlink_sitl_gazebo)/models/fpv_cam/fpv_cam.sdf -model fpv_cam -sdf -x 3 -y 3 -z 3"/>
+</launch>

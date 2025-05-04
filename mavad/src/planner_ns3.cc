@@ -377,18 +377,21 @@ void rnl::DroneSoc::receivePacket(ns3::Ptr<ns3::Socket> soc)
                             this->arrive_response_pub.publish(response);
                         }
                         if(ack.command == MAV_CMD_IMAGE_START_CAPTURE && ack.result == MAV_RESULT_ACCEPTED){
-                            ss << " drone arrived at waypoint";
+                            ss << " receivied batch";
                             // Move to next batch if we're the image sender
+                            
                             if(this->batch_in_progress) {
                                 this->current_batch_idx++;
-
+                                this->batch_in_progress = false;
                                 // If there are more batches to send, schedule the next one
                                 if(!this->image_batch_queue.empty()) {
                                     ns3::Simulator::ScheduleNow(&rnl::DroneSoc::sendNextImageBatch, this);
                                 }
                                 else {
-                                    this->batch_in_progress = false;
+                                    this->current_batch_idx = 0;
+
                                     std::cerr << "All image batches sent successfully" << std::endl;
+                                    ns3::Simulator::ScheduleNow(&rnl::DroneSoc::sendArrivedPacket, this, 0, MAV_CMD_NAV_WAYPOINT); // 0 is the id of gcs
                                 }
                             }
                         }
@@ -451,8 +454,9 @@ void rnl::DroneSoc::receivePacket(ns3::Ptr<ns3::Socket> soc)
                             buffer.batch_idx = handshake.jpg_quality;
                             buffer.batch_byte_offset = buffer.total_received;
                             buffer.batch_packets = handshake.packets;
+                            buffer.batch_packet_received.clear();
                             buffer.batch_packet_received.resize(handshake.packets, false);
-                            // buffer.packet_received.resize(handshake.packets, false);
+                            
                             buffer.last_update = ns3::Simulator::Now().GetMicroSeconds();
                         }
                         break;
@@ -470,6 +474,7 @@ void rnl::DroneSoc::receivePacket(ns3::Ptr<ns3::Socket> soc)
                         auto it = image_buffers_.find(sender);
                         if (it == image_buffers_.end() || !it->second.receiving) {
                             // Make sure we are receiving an image
+                            std::cerr << "Not receiving packet" << std::endl; 
                             break;
                         }
                         auto& buffer = it->second;
@@ -499,7 +504,7 @@ void rnl::DroneSoc::receivePacket(ns3::Ptr<ns3::Socket> soc)
                               << "/" << static_cast<int>(buffer.batch_packets) << std::endl;
                             
                               if(buffer.isBatchComplete()){
-                                std::cerr << "All image packets in "<< static_cast<int>(buffer.batch_idx)<<" batches received, sending ACK..." << std::endl;
+                                std::cerr << "All image packets in batch "<< static_cast<int>(buffer.batch_idx)<<" received, sending ACK..." << std::endl;
                                 
                                 this->sendArrivedPacket(msg.sysid, MAV_CMD_IMAGE_START_CAPTURE);
                             }
@@ -598,10 +603,10 @@ void rnl::DroneSoc::sendNextImageBatch() {
     this->source_bc->Send(packet);
     
     std::cerr << "Sent handshake for batch " << this->current_batch_idx + 1 << "/" 
-              << this->image_batch_queue.size() + 1 << " (" << chunk_count << " chunks)" << std::endl;
+              << this->image_batch_queue.size() + this->current_batch_idx + 1 << " (" << chunk_count << " chunks)" << std::endl;
     
     // Schedule chunk sending for this batch
-    ns3::Simulator::ScheduleNow(&rnl::DroneSoc::sendImageChunk, this, 0, chunk_count, batch_buffer_);
+    ns3::Simulator::Schedule(ns3::MilliSeconds(5), &rnl::DroneSoc::sendImageChunk, this, 0, chunk_count, batch_buffer_);
 }
 
 void rnl::DroneSoc::sendImageChunk(uint32_t i, uint32_t chunk_count, std::vector<uchar>& jpeg_buffer) {
@@ -732,6 +737,7 @@ void rnl::DroneSoc::sendArrivedPacket(uint32_t targetId, uint32_t cmdId){
                 targetId,            // Target system ID
                 200                  // Target component ID
             );
+            std::cerr << "Arrived target. Send COMMAND_ACK to GCS" << std::endl;
             break;
         }
         
@@ -761,7 +767,7 @@ void rnl::DroneSoc::sendArrivedPacket(uint32_t targetId, uint32_t cmdId){
 
     ns3::Ptr<ns3::Packet> packet = ns3::Create<ns3::Packet>(buf, len);
     this->source_bc->Send(packet);
-    std::cerr << "Arrived target. Send COMMAND_ACK to GCS" << std::endl;
+    
 }
 
 // void rnl::DroneSoc::sendImageACKPacket(uint32_t targetId){
@@ -840,12 +846,12 @@ void rnl::DroneSoc::publishLookAhead ()
     _lka.position.y = this->wpts[this->lookaheadindex].y;
     _lka.position.z = this->wpts[this->lookaheadindex].z;
 
-    std::vector<float> quaternion = rnl::lookAtOrigin(_lka.position.x, _lka.position.y, _lka.position.z);
+    // std::vector<float> quaternion = rnl::lookAtOrigin(_lka.position.x, _lka.position.y, _lka.position.z);
     
-    _lka.orientation.x = quaternion[0];
-    _lka.orientation.y = quaternion[1];
-    _lka.orientation.z = quaternion[2];
-    _lka.orientation.w = quaternion[3];
+    // _lka.orientation.x = quaternion[0];
+    // _lka.orientation.y = quaternion[1];
+    // _lka.orientation.z = quaternion[2];
+    // _lka.orientation.w = quaternion[3];
     
     // std::cerr<<"Node "<< this->id << " fly to " << _lka << std::endl;
     drone_lk_ahead_pub.publish (_lka);

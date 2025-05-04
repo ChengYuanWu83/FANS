@@ -39,11 +39,11 @@ int main(int argc, char **argv){
 
 
     std::cout << "======= Simulation Parameters ======= " << std::endl;
-    std::cout << "  Number of drones         : " << num_nodes << std::endl;
-    std::cout << "  JPEG quality             : " << jpeg_quality << std::endl;
-    std::cout << "  GCS-to-building distance : " << dist_gcs2building << " meters" << std::endl;
-    std::cout << "  5GHz band enabled        : " << std::boolalpha << band_5GHz_enable << std::endl;
-    std::cout << "  Store image in PNG enabled        : " << std::boolalpha << save_image_enable << std::endl;
+    std::cout << "  Number of drones           : " << num_nodes << std::endl;
+    std::cout << "  JPEG quality               : " << jpeg_quality << std::endl;
+    std::cout << "  GCS-to-building distance   : " << dist_gcs2building << " meters" << std::endl;
+    std::cout << "  5GHz band enabled          : " << std::boolalpha << band_5GHz_enable << std::endl;
+    std::cout << "  Store image in PNG enabled : " << std::boolalpha << save_image_enable << std::endl;
     std::cout << "===================================== " << std::endl;
 
 
@@ -65,7 +65,7 @@ int main(int argc, char **argv){
                                    float _stopTime     <simulation stop time> original: 2500.0
      */
     rnl::Planner plan (nh, nh_private, prop, num_nodes, 0.2, 0.1, 2500.0);  
-    plan.initializeSockets (dist_gcs2building, jpeg_quality, save_image_enable);
+    plan.initializeSockets (dist_gcs2building, jpeg_quality, !save_image_enable);
     plan.startSimul();
     return 0;
 }

@@ -168,6 +168,7 @@ namespace rnl{
         int                             jpeg_quality; /**< Desired image quality for jpeg compression [1-100]*/
         bool                            imagePublish; /**< Image publish in ROS or store in PNG*/
         sensor_msgs::ImageConstPtr      imagePtr; /**< temporary store the image > */
+        
         std::queue<std::vector<uchar>>  image_batch_queue;
         bool batch_in_progress = false;
         uint8_t current_batch_idx = 0;

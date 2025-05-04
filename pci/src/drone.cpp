@@ -92,8 +92,17 @@ void Drone::sp_pos_cb(const geometry_msgs::Pose& pos_sp)
     sp_mode = SP_mode::kPos;
     sp_pose = pos_sp;
 
+    geometry_msgs::Quaternion cam_ori_msg;
+    std::vector<float> quaternion = lookAtOrigin(sp_pose.position.x, sp_pose.position.y, sp_pose.position.z);
+    cam_ori_msg.x = quaternion[0];
+    cam_ori_msg.y = quaternion[1];
+    cam_ori_msg.z = quaternion[2];
+    cam_ori_msg.w = quaternion[3];
 
-    geometry_msgs::Quaternion cam_ori_msg = sp_pose.orientation;
+    sp_pose.orientation.x = quaternion[0];
+    sp_pose.orientation.y = quaternion[1];
+    sp_pose.orientation.z = quaternion[2];
+    sp_pose.orientation.w = quaternion[3];
     cam_ori_pub.publish(cam_ori_msg);
 }
 
@@ -273,5 +282,24 @@ bool Drone::target_reached(double tol, Eigen::Vector3d target)  // Target is in 
 {
     if((current_pose_vec-target).norm() < tol) return true;
     else return false;
+}
+
+std::vector<float> Drone::lookAtOrigin(float x, float y, float z)
+{
+    tf2::Vector3 current(x, y, z);
+    tf2::Vector3 forward = (-current).normalized();  
+    tf2::Vector3 world_up(0, 0, 1);
+    tf2::Vector3 right = world_up.cross(forward).normalized();
+    tf2::Vector3 up = forward.cross(right).normalized();
+    tf2::Matrix3x3 rotMatrix(
+        forward.x(), right.x(), up.x(),
+        forward.y(), right.y(), up.y(),
+        forward.z(), right.z(), up.z()
+    );
+    tf2::Quaternion q;
+    rotMatrix.getRotation(q);
+
+    return {static_cast<float>(q.x()), static_cast<float>(q.y()),
+            static_cast<float>(q.z()), static_cast<float>(q.w())};
 }
 

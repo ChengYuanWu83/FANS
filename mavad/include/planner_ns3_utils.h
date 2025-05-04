@@ -9,9 +9,9 @@
 #include <string>
 #include <eigen3/Eigen/Dense>
 #include <cmath>
-#include <tf2/LinearMath/Vector3.h>
-#include <tf2/LinearMath/Quaternion.h>
-#include <tf2/LinearMath/Matrix3x3.h>
+// #include <tf2/LinearMath/Vector3.h>
+// #include <tf2/LinearMath/Quaternion.h>
+// #include <tf2/LinearMath/Matrix3x3.h>
 
 #include "ns3/core-module.h"
 
@@ -113,9 +113,9 @@ namespace rnl {
         ns3::Vector3D       pos
     );
 
-    std::vector<float> lookAtOrigin(
-        float x,
-        float y,
-        float z
-    );
+    // std::vector<float> lookAtOrigin(
+    //     float x,
+    //     float y,
+    //     float z
+    // );
 };

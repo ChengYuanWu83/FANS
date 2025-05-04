@@ -183,25 +183,25 @@ void rnl::posHold
 }
 
 
-std::vector<float> rnl::lookAtOrigin(
-    float x,
-    float y,
-    float z
-)
-{
-    tf2::Vector3 current(x, y, z);
-    tf2::Vector3 forward = (-current).normalized();  
-    tf2::Vector3 world_up(0, 0, 1);
-    tf2::Vector3 right = world_up.cross(forward).normalized();
-    tf2::Vector3 up = forward.cross(right).normalized();
-    tf2::Matrix3x3 rotMatrix(
-        forward.x(), right.x(), up.x(),
-        forward.y(), right.y(), up.y(),
-        forward.z(), right.z(), up.z()
-    );
-    tf2::Quaternion q;
-    rotMatrix.getRotation(q);
+// std::vector<float> rnl::lookAtOrigin(
+//     float x,
+//     float y,
+//     float z
+// )
+// {
+//     tf2::Vector3 current(x, y, z);
+//     tf2::Vector3 forward = (-current).normalized();  
+//     tf2::Vector3 world_up(0, 0, 1);
+//     tf2::Vector3 right = world_up.cross(forward).normalized();
+//     tf2::Vector3 up = forward.cross(right).normalized();
+//     tf2::Matrix3x3 rotMatrix(
+//         forward.x(), right.x(), up.x(),
+//         forward.y(), right.y(), up.y(),
+//         forward.z(), right.z(), up.z()
+//     );
+//     tf2::Quaternion q;
+//     rotMatrix.getRotation(q);
 
-    return {static_cast<float>(q.x()), static_cast<float>(q.y()),
-            static_cast<float>(q.z()), static_cast<float>(q.w())};
-}
+//     return {static_cast<float>(q.x()), static_cast<float>(q.y()),
+//             static_cast<float>(q.z()), static_cast<float>(q.w())};
+// }
