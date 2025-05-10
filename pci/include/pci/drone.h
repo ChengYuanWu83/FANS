@@ -21,6 +21,7 @@
 #include <sensor_msgs/Image.h>
 #include <gazebo_msgs/SetModelState.h>
 #include <gazebo_msgs/ModelState.h>
+#include <gazebo_msgs/LinkStates.h>
 #include <ros/service.h>
 
 #include <eigen3/Eigen/Dense>
@@ -41,19 +42,21 @@ class Drone
 private:
 	// cyw add
 	std::string id;
+	ros::Subscriber camera_pose_sub;
+	ros::Publisher  camera_pose_pub;
 	ros::Subscriber image_sub;
 	ros::Publisher  image_pub_;
 	ros::Publisher  cam_ori_pub;
 	
-	ros::Subscriber state_sub;
+  	ros::Subscriber state_sub;
 	ros::Subscriber sp_pos_sub;
 	ros::Subscriber sp_vel_sub;
 	ros::Subscriber odom_sub;
-	ros::Publisher local_pos_pub;
+  	ros::Publisher local_pos_pub;
 	ros::Publisher local_vel_pub;
 	ros::Publisher global_pose_pub_;
-	ros::ServiceClient arming_client;
-	ros::ServiceClient set_mode_client;
+  	ros::ServiceClient arming_client;
+  	ros::ServiceClient set_mode_client;
 
 	ros::NodeHandle nh_;
 	ros::NodeHandle nh_private_;
@@ -64,7 +67,7 @@ private:
 
 	mavros_msgs::State current_state;
 
-	geometry_msgs::Pose sp_pose, current_pose;
+	geometry_msgs::Pose sp_pose, current_pose, camera_pose;
 	geometry_msgs::Twist sp_vel;
 	SP_mode sp_mode;
 
@@ -74,7 +77,7 @@ private:
 	bool pci_ready;  // Check if the sp are to be followed
 public:
 	Drone(ros::NodeHandle nh, ros::NodeHandle nh_private);
-
+	void link_states_callback(const gazebo_msgs::LinkStates::ConstPtr& msg);
 	void image_cb(const sensor_msgs::ImageConstPtr& msg);
 	void state_cb(const mavros_msgs::State::ConstPtr& msg);
 	void odom_cb(const geometry_msgs::PoseStamped& odom);
@@ -85,7 +88,7 @@ public:
 	bool initialize_drone();
 	void initialize_variables();
 	void initialize_pub_sub();
-	void start();
+  	void start();
 	bool set_offboard();
 	bool arm_drone();
 	void takeoff();
@@ -97,3 +100,4 @@ public:
 
 
 };
+

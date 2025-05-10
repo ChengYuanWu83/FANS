@@ -12,6 +12,9 @@ Drone::Drone(ros::NodeHandle nh, ros::NodeHandle nh_private):nh_(nh), nh_private
 void Drone::initialize_pub_sub()
 {
     ros::NodeHandle global_nh("~");
+
+    camera_pose_sub = global_nh.subscribe("/gazebo/link_states", 10, &Drone::link_states_callback, this);
+    camera_pose_pub = nh_.advertise<geometry_msgs::Pose>("cam_pose", 10);
     image_sub = global_nh.subscribe("/iris" + id + "/usb_cam/image_raw", 10, &Drone::image_cb, this);
     image_pub_ = nh_.advertise<sensor_msgs::Image>("image", 10);
     cam_ori_pub = global_nh.advertise<geometry_msgs::Quaternion>("/camera/orientation", 10);
@@ -79,8 +82,20 @@ void Drone::initialize_variables()
     takeoff_pose << param_val[0], param_val[1], param_val[2];
 }
 
+void Drone::link_states_callback(const gazebo_msgs::LinkStates::ConstPtr& msg){
+    for (size_t i = 0; i < msg->name.size(); ++i)
+    {
+        if (msg->name[i] == "iris1::fpv_cam")
+        {
+            this->camera_pose = msg->pose[i];
+            break;
+        }
+    }
+}
+
 void Drone::image_cb(const sensor_msgs::ImageConstPtr& msg){
     image_pub_.publish(*msg);
+    camera_pose_pub.publish(this->camera_pose);
 }
 
 void Drone::state_cb(const mavros_msgs::State::ConstPtr& msg){

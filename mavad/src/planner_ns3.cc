@@ -84,9 +84,14 @@ void rnl::Properties::setWifi(bool verbose, bool pcap_enable, bool band_5GHz_ena
         wifi.EnableLogComponents ();  // Turn on all Wifi logging
     }
 
-    // wifi.SetStandard (ns3::WIFI_STANDARD_80211b);
-    wifi.SetStandard (ns3::WIFI_STANDARD_80211g);
-    wifi.SetRemoteStationManager("ns3::AarfWifiManager");
+    if(band_5GHz_enable){
+        wifi.SetStandard (ns3::WIFI_STANDARD_80211n_5GHZ);
+    }
+    else{
+        wifi.SetStandard (ns3::WIFI_STANDARD_80211n_2_4GHZ);
+    }
+    
+    wifi.SetRemoteStationManager("ns3::MinstrelHtWifiManager");
     
 
     // This is one parameter that matters when using FixedRssLossModel
@@ -99,16 +104,6 @@ void rnl::Properties::setWifi(bool verbose, bool pcap_enable, bool band_5GHz_ena
     // wifiPhy.Set ("TxPowerEnd", ns3::DoubleValue (20.0));
 
     // wifiPhy.Set ("ShortPlcpPreambleSupported", ns3::BooleanValue (true) );
-    
-    if(band_5GHz_enable){
-        // wifiPhy.Set("PhyBand", ns3::EnumValue(ns3::WifiPhyBand::WIFI_PHY_BAND_5GHZ));
-        wifiPhy.Set("Frequency", ns3::UintegerValue(5180));
-    }
-    else{
-        // wifiPhy.Set("PhyBand", ns3::EnumValue(ns3::WifiPhyBand::WIFI_PHY_BAND_2_4GHZ));
-        wifiPhy.Set("Frequency", ns3::UintegerValue(2412));
-    }
-    
     
     // wifiPhy.Set("Frequency", UintegerValue(frequency)); // Set to frequency MHz frequency band
 
@@ -278,20 +273,26 @@ void rnl::DroneSoc::receivePacket(ns3::Ptr<ns3::Socket> soc)
                 switch(msg.msgid) {
                     case MAVLINK_MSG_ID_ODOMETRY:
                     {
+                        if(this->id > 0){
+							// std::cerr << "Received packet not belong to it. Discard" << std::endl; 
+							return;
+						}
+
                         mavlink_odometry_t odom;
                         mavlink_msg_odometry_decode(&msg, &odom);
-
-                        // handle received position
-                        ns3::Vector3D receivedPosition(odom.x, odom.y, odom.z);
-                        bool res = rnl::getTrajectory (&this->wpts, this->pos, receivedPosition, rnl::STEP);
-                        this->goal = receivedPosition;
-                        this->lookaheadindex = 0;
                         
-                        std::cerr << "Received target position from " << 
-                                    inetSenderAddr.GetIpv4() << " (node " << unsigned(msg.sysid) << ")" <<
-                                    " x=" << receivedPosition.x << 
-                                    " y=" << receivedPosition.y << 
-                                    " z=" << receivedPosition.z << std::endl;
+                        geometry_msgs::Pose _pos;
+                        _pos.position.x = odom.x;
+                        _pos.position.y = odom.y;
+                        _pos.position.z = odom.z;
+                        _pos.orientation.x = odom.q[1];
+                        _pos.orientation.y = odom.q[2];
+                        _pos.orientation.z = odom.q[3];
+                        _pos.orientation.w = odom.q[0];
+                        drone_camera_pub.publish(_pos);
+
+                        std::cerr << "Publish camera pose" << std::endl;
+
                         break;
                     }
                     case MAVLINK_MSG_ID_SET_POSITION_TARGET_LOCAL_NED: // goal packet
@@ -644,6 +645,7 @@ void rnl::DroneSoc::sendImageChunk(uint32_t i, uint32_t chunk_count, std::vector
 
 
 void rnl::DroneSoc::sendImagePacket(){
+    this->sendOdomPacket(this->cameraPose);
 
 	// Convert ROS image to OpenCV format
 	cv_bridge::CvImageConstPtr cv_ptr = cv_bridge::toCvShare(this->imagePtr, "bgr8");
@@ -686,30 +688,39 @@ void rnl::DroneSoc::sendImagePacket(){
     }
     this->sendNextImageBatch();
 
-	// // Send DATA_TRANSMISSION_HANDSHAKE message, which describe the image to be sent
-	// mavlink_message_t handshake_msg;
-	// mavlink_data_transmission_handshake_t handshake;
-	// handshake.type = MAVLINK_DATA_STREAM_IMG_JPEG;
-	// handshake.size = jpeg_buffer.size();
-	// handshake.width = cv_ptr->image.cols;
-	// handshake.height = cv_ptr->image.rows;
-	// handshake.packets = chunk_count;
-	// handshake.payload = CHUNK_SIZE;
-	// handshake.jpg_quality = this->jpeg_quality;
-	
-	// mavlink_msg_data_transmission_handshake_encode(this->id, 200, &handshake_msg, &handshake);
-	
-	// // Get the serialized message
-	// uint8_t handshake_buffer[MAVLINK_MAX_PACKET_LEN];
-	// uint16_t handshake_len = mavlink_msg_to_send_buffer(handshake_buffer, &handshake_msg);
+}
 
-	// ns3::Ptr<ns3::Packet> packet = ns3::Create<ns3::Packet> (handshake_buffer, handshake_len);
-    // this->source_bc->Send (packet);
-    // std::cerr <<"Arrived target. Send imgae to GCS" << std::endl;
+void rnl::DroneSoc::sendOdomPacket(geometry_msgs::Pose _pos){
+    int64_t sendTimestamp = ns3::Simulator::Now().GetMicroSeconds();
+    float x = _pos.position.x;
+    float y = _pos.position.y;
+    float z = _pos.position.z;
+    float qx = _pos.orientation.x;
+    float qy = _pos.orientation.y;
+    float qz = _pos.orientation.z;
+    float qw = _pos.orientation.w;
+    float q[4] = {qw, qx,qy,qz};
+    float null[21];
+    mavlink_message_t msg;
+    uint8_t buf[MAVLINK_MAX_PACKET_LEN];
 
-    // // Send the image data chunks
-    // ns3::Simulator::ScheduleNow(&rnl::DroneSoc::SendImageChunk, this, 0, chunk_count, jpeg_buffer);
+    mavlink_msg_odometry_pack(
+        this->id, 200, &msg,
+        sendTimestamp,
+        MAV_FRAME_LOCAL_NED, MAV_FRAME_LOCAL_NED,
+        x, y, z, q,
+        0, 0, 0,  // velocities field
+        0, 0, 0,  // anlgular velocities field
+        null, null,
+        0, 0, 0        
+    );
 
+    int16_t len = mavlink_msg_to_send_buffer(buf, &msg);
+
+    ns3::Ptr<ns3::Packet> packet = ns3::Create<ns3::Packet> (buf, len);
+    this->source_bc->Send (packet);
+    std::cerr <<"Camera pose x=" << x << ", y=" << y << ", z=" << z << 
+                " send to node 0" << std::endl;
 }
 
 void rnl::DroneSoc::sendArrivedPacket(uint32_t targetId, uint32_t cmdId){
@@ -770,18 +781,6 @@ void rnl::DroneSoc::sendArrivedPacket(uint32_t targetId, uint32_t cmdId){
     
 }
 
-// void rnl::DroneSoc::sendImageACKPacket(uint32_t targetId){
-//     mavlink_message_t msg;
-//     uint8_t buf[MAVLINK_MAX_PACKET_LEN];
-
-//     mavlink_msg_mission_ack_pack(this->id, 200, &msg, targetId, 200, MAV_RESULT_ACCEPTED, MAV_MISSION_ACCEPTED, MAV_MISSION_TYPE_MISSION);
-//     uint16_t len = mavlink_msg_to_send_buffer(buf, &msg);
-
-//     ns3::Ptr<ns3::Packet> packet = ns3::Create<ns3::Packet> (buf, len);
-//     this->source_bc->Send (packet);
-//     std::cerr <<"Arrived target. Send ACK to GCS" << std::endl;
-// }
-
 void rnl::DroneSoc::sendGoalPacket (const geometry_msgs::PoseStamped::ConstPtr& _pos) { // send position  and orientation
     
     int64_t sendTimestamp = ns3::Simulator::Now().GetMicroSeconds();
@@ -826,6 +825,12 @@ void rnl::DroneSoc::sendGoalPacket (const geometry_msgs::PoseStamped::ConstPtr& 
                 " send to node" << unsigned(targetId) << std::endl;
 }
 
+void rnl::DroneSoc::camPosSubCb (const geometry_msgs::Pose::ConstPtr& _pos)
+{
+    this->cameraPose = *_pos;
+}
+
+
 void rnl::DroneSoc::posSubCb (const geometry_msgs::PoseStamped& _pos)
 {
     this->pos.x = _pos.pose.position.x;
@@ -846,14 +851,6 @@ void rnl::DroneSoc::publishLookAhead ()
     _lka.position.y = this->wpts[this->lookaheadindex].y;
     _lka.position.z = this->wpts[this->lookaheadindex].z;
 
-    // std::vector<float> quaternion = rnl::lookAtOrigin(_lka.position.x, _lka.position.y, _lka.position.z);
-    
-    // _lka.orientation.x = quaternion[0];
-    // _lka.orientation.y = quaternion[1];
-    // _lka.orientation.z = quaternion[2];
-    // _lka.orientation.w = quaternion[3];
-    
-    // std::cerr<<"Node "<< this->id << " fly to " << _lka << std::endl;
     drone_lk_ahead_pub.publish (_lka);
 }
 
@@ -909,8 +906,12 @@ void rnl::Planner::initializeRosParams()
         if(i == 0){
             nsocs[i].arrive_response_pub= nh.advertise<std_msgs::String>("/gcs/arrived", 10);
             nsocs[i].drone_image_pub    = nh.advertise<sensor_msgs::Image>("/gcs/image", 10);
+            nsocs[i].drone_camera_pub   = nh.advertise<geometry_msgs::Pose>("/gcs/cam_pose", 10);
         }
         else{
+
+            nsocs[i].drone_camera_sub   = nh.subscribe("/uav" + std::to_string(i) + "/cam_pose",
+                                        1, &rnl::DroneSoc::camPosSubCb, &nsocs[i]);
             nsocs[i].target_pos_sub     = nh.subscribe("/gcs/target_pose_uav" + std::to_string(i),
                                         10, &rnl::DroneSoc::sendGoalPacket, &nsocs[0]);
             nsocs[i].drone_lk_ahead_pub = nh.advertise<geometry_msgs::Pose>( "/uav" + std::to_string(i) + "/sp_pos", 1);
@@ -949,7 +950,7 @@ void rnl::Planner::initializeSockets (double dist_gcs2building, double _jpeg_qua
                                                     config["initial_pos"][1].as<double>(),
                                                     config["initial_pos"][2].as<double>());
         }
-        rnl::posHold(&_dsoc.wpts,_dsoc.pos);
+        // rnl::posHold(&_dsoc.wpts,_dsoc.pos);
         _dsoc.lookaheadindex = 0;
         _dsoc.state    = SMOVE;
         nsocs.push_back(_dsoc);

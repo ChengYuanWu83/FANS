@@ -14,6 +14,7 @@
 
 #include <ros/ros.h>
 #include <geometry_msgs/PoseStamped.h>
+#include <geometry_msgs/Pose.h>
 #include <std_msgs/String.h>
 #include <sensor_msgs/Image.h>
 
@@ -59,6 +60,7 @@ namespace rnl{
          */
         DroneSoc ();
         
+        void sendOdomPacket(geometry_msgs::Pose _pos);
         void sendGoalPacket (const geometry_msgs::PoseStamped::ConstPtr& _pos);     //send position and orientation
         void sendArrivedPacket (uint32_t targetId, uint32_t cmdId);
         void sendMAVLinkPacket(uint32_t msgId, uint32_t targetId);
@@ -169,14 +171,16 @@ namespace rnl{
         bool                            imagePublish; /**< Image publish in ROS or store in PNG*/
         sensor_msgs::ImageConstPtr      imagePtr; /**< temporary store the image > */
         
+        geometry_msgs::Pose             cameraPose;
         std::queue<std::vector<uchar>>  image_batch_queue;
-        bool batch_in_progress = false;
-        uint8_t current_batch_idx = 0;
-        rnl::ImageInfo image_info;
+        bool                            batch_in_progress = false;
+        uint8_t                         current_batch_idx = 0;
+        rnl::ImageInfo                  image_info;
         std::map<std::pair<uint8_t, uint8_t>, rnl::ImageReceiveBuffer> image_buffers_; /** pair<system id, image sequnce>,  image information**/
         
 
-
+        ros::Publisher                drone_camera_pub;
+        ros::Subscriber               drone_camera_sub;
         ros::Publisher                drone_lk_ahead_pub;
         ros::Subscriber               drone_pos_sub;
         ros::Subscriber               drone_image_sub;
@@ -211,6 +215,13 @@ namespace rnl{
          * @param _msg Image
          */
         void imageSubCb (const sensor_msgs::ImageConstPtr& _msg);
+
+        /**
+         * @brief Set the (subscribed) camera pose
+         *
+         * @param _pos Pose
+         */
+        void camPosSubCb (const geometry_msgs::Pose::ConstPtr& _pos);
     };
 
     /**
