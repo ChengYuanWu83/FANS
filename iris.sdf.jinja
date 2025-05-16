@@ -614,7 +614,7 @@
                 <height>800</height>
               </image>
               <clip>
-                <near>0.5</near>
+                <near>0.25</near>
                 <far>100</far>
               </clip>
               <lens>
@@ -632,7 +632,7 @@
             </camera>
             <always_on>1</always_on>
             <update_rate>30</update_rate>
-            <visualize>1</visualize>        <!-- cyw: visualize the capture range -->
+            <visualize>0</visualize>        <!-- cyw: visualize the FOV of camera-->
             
             <plugin name='camera_plugin' filename='libgazebo_ros_camera.so'>
                 <robotNamespace></robotNamespace>
@@ -695,6 +695,7 @@
       </axis>
       
     </joint>
-    <plugin name="camera_orientation_plugin" filename="libcamera_orientation_plugin.so"/> <!-- cyw: the pulgin for rotate camera on drone -->
+    <plugin name="camera_orientation_plugin" filename="libcamera_orientation_plugin.so"/> 
+    <!-- cyw: the pulgin for rotate camera on drone -->
   </model>
 </sdf>

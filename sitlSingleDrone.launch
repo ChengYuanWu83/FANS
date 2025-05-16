@@ -6,8 +6,8 @@
     <arg name="est" default="ekf2"/>
     <arg name="vehicle" default="iris"/>
     <!-- cyw: we store our world in pci folder -->
-    <!-- world_name options: donaldBren, racingCar, apartment -->
-    <arg name="world_name" default="apartment"/>
+    <!-- world_name options: ship, racing_car, cabin -->
+    <arg name="world_name" default="racing_car"/>
     <arg name="world" default="$(find pci)/worlds/$(arg world_name).world"/>
     <!-- gazebo configs -->
     <arg name="gui" default="true"/>
@@ -22,6 +22,8 @@
         <arg name="verbose" value="$(arg verbose)"/>
         <arg name="paused" value="$(arg paused)"/>
     </include>
+    <!-- flightgoggles configs -->
+    <arg name="render_stereo" default="false" />
 
 
 
@@ -32,7 +34,7 @@
         <arg name="fcu_url" default="udp://:14541@localhost:14581"/>
         <!-- PX4 SITL and vehicle spawn -->
         <include file="$(find px4)/launch/single_vehicle_spawn.launch">
-            <arg name="x" value="-10"/>
+            <arg name="x" value="10"/>
             <arg name="y" value="0"/>
             <arg name="z" value="0"/>
             <arg name="R" value="0"/>
@@ -53,7 +55,14 @@
             <arg name="tgt_system" value="$(eval 1 + arg('ID'))"/>
             <arg name="tgt_component" value="1"/>
         </include>
+
+        
     </group>
+    <include file="$(find flightgoggles_ros_bridge)/launch/bridge.launch">
+        <arg name="mav_name" value="uav1" />
+        <arg name="scene_filename" value="$(arg world_name)"/>
+        <arg name="render_stereo" default="$(arg render_stereo)" />
+    </include>
 </launch>
 <!-- to add more UAVs (up to 10):
 Increase the id

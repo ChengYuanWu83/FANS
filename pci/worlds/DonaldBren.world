@@ -1,24 +1,6 @@
 <sdf version='1.7'>
   <world name='default'>
-  <plugin name='ros_interface_plugin' filename='librotors_gazebo_ros_interface_plugin.so'/>
-    <light name='sun' type='directional'>
-      <cast_shadows>1</cast_shadows>
-      <pose>0 0 10 0 -0 0</pose>
-      <diffuse>0.8 0.8 0.8 1</diffuse>
-      <specular>0.2 0.2 0.2 1</specular>
-      <attenuation>
-        <range>1000</range>
-        <constant>0.9</constant>
-        <linear>0.01</linear>
-        <quadratic>0.001</quadratic>
-      </attenuation>
-      <direction>-0.5 0.1 -0.9</direction>
-      <spot>
-        <inner_angle>0</inner_angle>
-        <outer_angle>0</outer_angle>
-        <falloff>0</falloff>
-      </spot>
-    </light>
+    <plugin name='ros_interface_plugin' filename='librotors_gazebo_ros_interface_plugin.so'/>
     <model name='ground_plane'>
       <static>1</static>
       <link name='link'>
@@ -46,7 +28,7 @@
           </surface>
           <max_contacts>10</max_contacts>
         </collision>
-        <!-- <visual name='visual'>
+        <visual name='visual'>
           <cast_shadows>0</cast_shadows>
           <geometry>
             <plane>
@@ -60,7 +42,41 @@
               <name>Gazebo/Grey</name>
             </script>
           </material>
-        </visual> -->
+        </visual>
+        <self_collide>0</self_collide>
+        <enable_wind>0</enable_wind>
+        <kinematic>0</kinematic>
+      </link>
+    </model>
+    <light name='sun' type='directional'>
+      <cast_shadows>1</cast_shadows>
+      <pose>0 0 10 0 -0 0</pose>
+      <diffuse>0.8 0.8 0.8 1</diffuse>
+      <specular>0.2 0.2 0.2 1</specular>
+      <attenuation>
+        <range>1000</range>
+        <constant>0.9</constant>
+        <linear>0.01</linear>
+        <quadratic>0.001</quadratic>
+      </attenuation>
+      <direction>-0.5 0.1 -0.9</direction>
+      <spot>
+        <inner_angle>0</inner_angle>
+        <outer_angle>0</outer_angle>
+        <falloff>0</falloff>
+      </spot>
+    </light>
+    <model name='my_mesh'>
+      <pose>0 0 0 0 -0 0</pose>
+      <static>1</static>
+      <link name='body'>
+        <visual name='visual'>
+          <geometry>
+            <mesh>
+              <uri>/home/nmsl/3dwarehouse/collda/Untitled.dae</uri>
+            </mesh>
+          </geometry>
+        </visual>
         <self_collide>0</self_collide>
         <enable_wind>0</enable_wind>
         <kinematic>0</kinematic>
@@ -76,7 +92,7 @@
     </physics>
     <scene>
       <ambient>0.4 0.4 0.4 1</ambient>
-      <background>1 1 1 1</background>
+      <background>0.7 0.7 0.7 1</background>
       <shadows>1</shadows>
     </scene>
     <wind/>
@@ -87,63 +103,25 @@
       <elevation>0</elevation>
       <heading_deg>0</heading_deg>
     </spherical_coordinates>
-    <model name='apartment'>
-      <static>1</static>
-      <link name='link'>
-        <!-- <collision name='collision'>
-          <geometry>
-            <mesh>
-              <scale>0.2 0.2 0.2</scale>
-              <uri>model://apartment/meshes/apartment.dae</uri>
-            </mesh>
-          </geometry>
-          <max_contacts>10</max_contacts>
-          <surface>
-            <contact>
-              <ode/>
-            </contact>
-            <bounce/>
-            <friction>
-              <torsional>
-                <ode/>
-              </torsional>
-              <ode/>
-            </friction>
-          </surface>
-        </collision> -->
-        <visual name='visual'>
-          <geometry>
-            <mesh>
-              <scale>0.2 0.2 0.2</scale>
-              <uri>model://apartment/meshes/apartment.dae</uri>
-            </mesh>
-          </geometry>
-        </visual>
-        <self_collide>0</self_collide>
-        <enable_wind>0</enable_wind>
-        <kinematic>0</kinematic>
-      </link>
-      <pose>0 0 0 0 0 0</pose>
-    </model>
     <state world_name='default'>
       <sim_time>0 0</sim_time>
       <real_time>0 0</real_time>
-      <wall_time>1744178953 172755772</wall_time>
+      <wall_time>1743133400 129675957</wall_time>
       <iterations>0</iterations>
-      <model name='apartment'>
-        <pose>0 0 0 0 0 0</pose>
+      <model name='ground_plane'>
+        <pose>0 0 0 0 -0 0</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose>0 0 0 0 0 0</pose>
+          <pose>0 0 0 0 -0 0</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 0 0 -0 0</acceleration>
           <wrench>0 0 0 0 -0 0</wrench>
         </link>
       </model>
-      <model name='ground_plane'>
+      <model name='my_mesh'>
         <pose>0 0 0 0 -0 0</pose>
-        <scale>1 1 1</scale>
-        <link name='link'>
+        <scale>0.1 0.1 0.1</scale>
+        <link name='body'>
           <pose>0 0 0 0 -0 0</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 0 0 -0 0</acceleration>
@@ -156,7 +134,7 @@
     </state>
     <gui fullscreen='0'>
       <camera name='user_camera'>
-        <pose>27.5998 -21.1023 14.679 0 0.279636 2.47674</pose>
+        <pose>153.564 42.6527 37.2826 0 0.191643 -2.87499</pose>
         <view_controller>orbit</view_controller>
         <projection_type>perspective</projection_type>
       </camera>

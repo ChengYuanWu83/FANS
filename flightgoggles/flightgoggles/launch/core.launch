@@ -1,0 +1,54 @@
+<launch>
+  <!-- Launch settings. To be passed into launch file. -->
+  <arg name="use_dynamics" default="1" />
+  <arg name="ignore_collisions" default="false" />
+  <arg name="render_stereo" default="0" />
+  <arg name="gate_locations" default=""/>
+  <arg name="world_frame" default="world/ned"/>
+  <arg name="body_frame" default="uav/imu"/>
+  <arg name="sensor_package" default="simulationSensors"/>
+  <arg name="exit_after_rendering" default="false"/>
+  <arg name="timestampfile_path" default="" />
+  <!-- options of scene filename: Stata_GroundFloor, Abandoned_Factory_Morning, (build by me)castle,drjohnson-->
+  <arg name="scene_filename" default="Stata_GroundFloor" />
+
+  <group ns="/uav">
+
+    <!-- Use clock scaling by default. Can be disabled using drone.yaml config. -->
+    <param name="/use_sim_time" value="true" />
+    <param name="/uav/camera/render_stereo" value="$(arg render_stereo)" />
+   
+    <!-- Read required config files" / --> 
+    <rosparam command="load" file="$(find flightgoggles)/config/drone/drone.yaml"/>
+    <rosparam command="load" file="$(find flightgoggles)/config/challenges/nominal_gate_locations.yaml"/>
+
+    <!-- Load static transforms for sensors -->
+    <include file="$(find flightgoggles)/config/sensors/$(arg sensor_package).xml">
+      <arg name="render_stereo" value="$(arg render_stereo)"/>
+      <arg name="body_frame" value="$(arg body_frame)"/>
+    </include>
+
+    <!-- flightgoggles_uav_dynamics simulator -->
+    <!--Will not be run if playing back previous flight from rosbag-->
+    <node name="flightgoggles_uav_dynamics" pkg="flightgoggles_uav_dynamics" type="node"
+          if="$(arg use_dynamics)" output="screen">
+      <param name="ignore_collisions" type="bool" value="$(arg ignore_collisions)" />
+    </node>
+
+    <!-- FlightGoggles ROS Bridge -->
+    <node name="flightgoggles_ros_bridge" pkg="flightgoggles_ros_bridge" type="ROSClient" output="screen" >
+      <param name="render_stereo" type="bool" value="$(arg render_stereo)" />
+      <param name="timestampfile_path" value="$(arg timestampfile_path)" />
+    </node>
+
+    <!-- FlightGoggles IR Marker visualizer -->
+    <node name="flightgoggles_marker_visualizer" pkg="flightgoggles_marker_visualizer" type="flightgoggles_marker_visualizer" />
+
+    <param name="/uav/flightgoggles_ros_bridge/scene_filename" value="$(arg scene_filename)" /> 
+    <param name="/uav/flightgoggles_ros_bridge/world_frame" value="$(arg world_frame)"/> 
+    <param name="/uav/flightgoggles_ros_bridge/body_frame" value="$(arg body_frame)"/> 
+    <node pkg="tf2_ros" type="static_transform_publisher"
+          name="world_ned_link" args="0 0 -0.5 1.57079 3.14159 0 'world' 'world/ned'"/>
+  
+  </group>
+</launch>

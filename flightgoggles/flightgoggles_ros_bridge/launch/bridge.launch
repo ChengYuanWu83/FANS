@@ -1,0 +1,42 @@
+<launch>
+  <!-- Launch settings. To be passed into launch file. -->
+  <arg name="mav_name" default="firefly" />
+  <arg name="ignore_collisions" default="false" />
+  <arg name="render_stereo" default="0" />
+  <arg name="world_frame" default="world/ned"/>
+  <arg name="body_frame" default="uav/imu"/>
+  <arg name="sensor_package" default="simulationSensors"/>
+  <arg name="timestampfile_path" default="" />
+  <arg name="scene_filename" default="racing_car" />
+
+  <group ns="/uav">
+
+    <!-- Use clock scaling by default. Can be disabled using drone.yaml config. -->
+    <param name="/use_sim_time" value="true" />
+
+    <!-- Read required config files" / --> 
+    <rosparam command="load" file="$(find flightgoggles)/config/drone/drone.yaml"/>
+
+    <!-- Load static transforms for sensors -->
+    <include file="$(find flightgoggles)/config/sensors/$(arg sensor_package).xml">
+      <arg name="render_stereo" value="$(arg render_stereo)"/>
+      <arg name="body_frame" value="$(arg body_frame)"/>
+    </include>
+
+    <param name="/uav/flightgoggles_ros_bridge/scene_filename" value="$(arg scene_filename)" /> 
+    
+    <!-- FlightGoggles ROS Bridge -->
+    <node name="flightgoggles_ros_bridge" pkg="flightgoggles_ros_bridge" type="ROSClient" output="screen" >
+      
+      <param name="render_stereo" type="bool" value="$(arg render_stereo)" />
+      <param name="timestampfile_path" value="$(arg timestampfile_path)" />
+      <remap from="/uav/camera/orientation" to="/$(arg mav_name)/cam_pose_for_unity" />
+      <!-- [cyw]:use camera converter as input -->
+      <!-- <remap from="/uav/transform" to="/$(arg mav_name)/odometry_sensor1/transform" /> -->
+      <!-- [cyw]:use odometry as input -->
+    </node>
+
+    <!-- <node pkg="tf2_ros" type="static_transform_publisher"
+          name="world_ned_link" args="0 0 -0.5 1.57079 3.14159 0 'world' 'world/ned'"/> -->
+  </group>
+</launch>

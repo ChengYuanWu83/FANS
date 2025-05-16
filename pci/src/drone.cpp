@@ -15,10 +15,12 @@ void Drone::initialize_pub_sub()
 
     camera_pose_sub = global_nh.subscribe("/gazebo/link_states", 10, &Drone::link_states_callback, this);
     camera_pose_pub = nh_.advertise<geometry_msgs::Pose>("cam_pose", 10);
-    image_sub = global_nh.subscribe("/iris" + id + "/usb_cam/image_raw", 10, &Drone::image_cb, this);
+    camera_pose_for_unity_pub = nh_.advertise<geometry_msgs::Pose>("cam_pose_for_unity", 10);
+    // image_sub = global_nh.subscribe("/iris" + id + "/usb_cam/image_raw", 10, &Drone::image_cb, this);
+    image_sub = global_nh.subscribe("/uav/camera/left/image_rect_color", 10, &Drone::image_cb, this);
     image_pub_ = nh_.advertise<sensor_msgs::Image>("image", 10);
-    cam_ori_pub = global_nh.advertise<geometry_msgs::Quaternion>("/camera/orientation", 10);
-
+    cam_ori_pub = global_nh.advertise<geometry_msgs::Pose>("/camera/orientation", 10);
+   
     state_sub = nh_.subscribe<mavros_msgs::State>("mavros/state", 10, &Drone::state_cb, this);
     odom_sub = nh_.subscribe("mavros/local_position/pose", 10, &Drone::odom_cb, this);
     local_pos_pub = nh_.advertise<geometry_msgs::PoseStamped>("mavros/setpoint_position/local", 10);
@@ -88,6 +90,30 @@ void Drone::link_states_callback(const gazebo_msgs::LinkStates::ConstPtr& msg){
         if (msg->name[i] == "iris1::fpv_cam")
         {
             this->camera_pose = msg->pose[i];
+            
+            geometry_msgs::Pose unity_camera_pose = this->camera_pose;
+            //[cyw] q_new is reponsible for the camera orietation in Unity
+            tf2::Quaternion q_orig;
+            q_orig.setX(this->camera_pose.orientation.x);
+            q_orig.setY(this->camera_pose.orientation.y);
+            q_orig.setZ(this->camera_pose.orientation.z);
+            q_orig.setW(this->camera_pose.orientation.w);
+        
+            double roll, pitch, yaw;
+            tf2::Matrix3x3(q_orig).getRPY(roll, pitch, yaw);
+        
+            pitch = -pitch;
+        
+            tf2::Quaternion q_new;
+            q_new.setRPY(roll, pitch, yaw);
+            q_new.normalize();
+            unity_camera_pose.orientation.x = q_new.x();
+            unity_camera_pose.orientation.y = q_new.y();
+            unity_camera_pose.orientation.z = q_new.z();
+            unity_camera_pose.orientation.w = q_new.w();
+            
+            camera_pose_pub.publish(this->camera_pose);
+            camera_pose_for_unity_pub.publish(unity_camera_pose);
             break;
         }
     }
@@ -95,7 +121,7 @@ void Drone::link_states_callback(const gazebo_msgs::LinkStates::ConstPtr& msg){
 
 void Drone::image_cb(const sensor_msgs::ImageConstPtr& msg){
     image_pub_.publish(*msg);
-    camera_pose_pub.publish(this->camera_pose);
+    
 }
 
 void Drone::state_cb(const mavros_msgs::State::ConstPtr& msg){
@@ -107,13 +133,18 @@ void Drone::sp_pos_cb(const geometry_msgs::Pose& pos_sp)
     sp_mode = SP_mode::kPos;
     sp_pose = pos_sp;
 
-    geometry_msgs::Quaternion cam_ori_msg;
+    geometry_msgs::Pose cam_ori_msg;
     std::vector<float> quaternion = lookAtOrigin(sp_pose.position.x, sp_pose.position.y, sp_pose.position.z);
-    cam_ori_msg.x = quaternion[0];
-    cam_ori_msg.y = quaternion[1];
-    cam_ori_msg.z = quaternion[2];
-    cam_ori_msg.w = quaternion[3];
+    cam_ori_msg.position.x = sp_pose.position.x;
+    cam_ori_msg.position.y = sp_pose.position.y;
+    cam_ori_msg.position.z = sp_pose.position.z;
 
+    cam_ori_msg.orientation.x = quaternion[0];
+    cam_ori_msg.orientation.y = quaternion[1];
+    cam_ori_msg.orientation.z = quaternion[2];
+    cam_ori_msg.orientation.w = quaternion[3];
+
+    // [cyw]: control the yaw in PX4. turn it off if directly controll the camera
     sp_pose.orientation.x = quaternion[0];
     sp_pose.orientation.y = quaternion[1];
     sp_pose.orientation.z = quaternion[2];
@@ -311,10 +342,14 @@ std::vector<float> Drone::lookAtOrigin(float x, float y, float z)
         forward.y(), right.y(), up.y(),
         forward.z(), right.z(), up.z()
     );
-    tf2::Quaternion q;
+    tf2::Quaternion q, q_lookat, q_correction;
     rotMatrix.getRotation(q);
 
-    return {static_cast<float>(q.x()), static_cast<float>(q.y()),
-            static_cast<float>(q.z()), static_cast<float>(q.w())};
+    // q_correction.setRPY(0, M_PI, 0);  // Roll 180°
+    // q_lookat = q_correction * q;
+    q_lookat = q;
+
+    return {static_cast<float>(q_lookat.x()), static_cast<float>(q_lookat.y()),
+            static_cast<float>(q_lookat.z()), static_cast<float>(q_lookat.w())};
 }
 

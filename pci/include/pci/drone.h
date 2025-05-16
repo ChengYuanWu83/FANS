@@ -44,6 +44,7 @@ private:
 	std::string id;
 	ros::Subscriber camera_pose_sub;
 	ros::Publisher  camera_pose_pub;
+	ros::Publisher  camera_pose_for_unity_pub;
 	ros::Subscriber image_sub;
 	ros::Publisher  image_pub_;
 	ros::Publisher  cam_ori_pub;
