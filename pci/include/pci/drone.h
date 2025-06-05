@@ -8,6 +8,7 @@
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2/LinearMath/Vector3.h>
 #include <tf2/LinearMath/Matrix3x3.h>
+#include <tf2/LinearMath/Scalar.h>
 #include <tf2_ros/transform_broadcaster.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/Twist.h>
@@ -98,6 +99,7 @@ public:
 	
 	//cyw
 	std::vector<float> lookAtOrigin(float x, float y, float z);
+	tf2::Quaternion smoothLookAt(const geometry_msgs::Point& target_position);
 
 
 };

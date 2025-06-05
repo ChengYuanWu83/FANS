@@ -60,6 +60,12 @@ namespace rnl{
         SRECVIMAGE      = 4,
     };
 
+    enum system //cyw
+    {
+        GCS             = 1,    // GCS
+        DRONE           = 2,    // DRONE
+    };
+
     /**
      * @enum 
      * @brief Control command

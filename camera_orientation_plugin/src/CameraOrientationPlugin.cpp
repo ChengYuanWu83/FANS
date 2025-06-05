@@ -3,7 +3,7 @@
 #include <gazebo/physics/physics.hh>
 #include <ignition/math/Quaternion.hh>
 #include <ros/ros.h>
-#include <geometry_msgs/Quaternion.h>
+#include <geometry_msgs/Pose.h>
 
 namespace gazebo
 {
@@ -48,11 +48,15 @@ public:
 		std::cout << "[CameraOrientationPlugin] Successfully loaded." << std::endl;
 	}
 
-	void OnQuatMsg(const geometry_msgs::Quaternion& msg)
+	void OnQuatMsg(const geometry_msgs::Pose& msg)
 	{
 
-		ignition::math::Quaterniond orientation(msg.w, msg.x, msg.y, msg.z);
-		std::cout << "[CameraOrientationPlugin] orientation: " << orientation << std::endl;
+		ignition::math::Quaterniond orientation(msg.orientation.w,
+												msg.orientation.x,
+												msg.orientation.y, 
+												msg.orientation.z);
+
+		// std::cout << "[CameraOrientationPlugin] orientation: " << orientation << std::endl;
         // cam_link_->SetWorldPose(
         //     ignition::math::Pose3d(cam_link_->WorldPose().Pos(), orientation)
         // );

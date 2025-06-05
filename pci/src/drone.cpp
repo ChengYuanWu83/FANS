@@ -134,21 +134,23 @@ void Drone::sp_pos_cb(const geometry_msgs::Pose& pos_sp)
     sp_pose = pos_sp;
 
     geometry_msgs::Pose cam_ori_msg;
-    std::vector<float> quaternion = lookAtOrigin(sp_pose.position.x, sp_pose.position.y, sp_pose.position.z);
+    tf2::Quaternion quaternion = smoothLookAt(sp_pose.position);
+
+
     cam_ori_msg.position.x = sp_pose.position.x;
     cam_ori_msg.position.y = sp_pose.position.y;
     cam_ori_msg.position.z = sp_pose.position.z;
 
-    cam_ori_msg.orientation.x = quaternion[0];
-    cam_ori_msg.orientation.y = quaternion[1];
-    cam_ori_msg.orientation.z = quaternion[2];
-    cam_ori_msg.orientation.w = quaternion[3];
+    cam_ori_msg.orientation.x = quaternion.x();
+    cam_ori_msg.orientation.y = quaternion.y();
+    cam_ori_msg.orientation.z = quaternion.z();
+    cam_ori_msg.orientation.w = quaternion.w();
 
     // [cyw]: control the yaw in PX4. turn it off if directly controll the camera
-    sp_pose.orientation.x = quaternion[0];
-    sp_pose.orientation.y = quaternion[1];
-    sp_pose.orientation.z = quaternion[2];
-    sp_pose.orientation.w = quaternion[3];
+    sp_pose.orientation.x = quaternion.x();
+    sp_pose.orientation.y = quaternion.y();
+    sp_pose.orientation.z = quaternion.z();
+    sp_pose.orientation.w = quaternion.w();
     cam_ori_pub.publish(cam_ori_msg);
 }
 
@@ -353,3 +355,39 @@ std::vector<float> Drone::lookAtOrigin(float x, float y, float z)
             static_cast<float>(q_lookat.z()), static_cast<float>(q_lookat.w())};
 }
 
+tf2::Quaternion Drone::smoothLookAt(
+    const geometry_msgs::Point& target_position)
+{
+    double max_angle_rad = 40.0 * M_PI / 180.0;
+
+    std::vector<float> target_quat_vec = lookAtOrigin(
+        target_position.x,
+        target_position.y,
+        target_position.z);
+
+    tf2::Quaternion q_target(
+        target_quat_vec[0],
+        target_quat_vec[1],
+        target_quat_vec[2],
+        target_quat_vec[3]);
+
+    tf2::Quaternion q_current(
+        this->current_pose.orientation.x,
+        this->current_pose.orientation.y,
+        this->current_pose.orientation.z,
+        this->current_pose.orientation.w);
+
+    // 計算旋轉角度
+    double angle = q_current.angleShortestPath(q_target);
+
+    tf2::Quaternion q_result;
+    if (angle > max_angle_rad) {
+        double t = max_angle_rad / angle;
+        q_result = q_current.slerp(q_target, t);
+    } else {
+        q_result = q_target;
+    }
+
+    q_result.normalize();
+    return q_result;
+}

@@ -53,175 +53,185 @@ namespace rnl{
     /**
      * @brief Drone Socket common for planning and communication
      */
-    struct DroneSoc
+    class Soc
     {   
-        /**
-         * @brief Construct a new Drone Soc object
-         */
-        DroneSoc ();
+        public:
+            /**
+             * @brief Construct a new Drone Soc object
+             */
+            Soc ();
+            virtual ~Soc();
+            
+            void sendOdomPacket(geometry_msgs::Pose _pos);
+            
+            void sendArrivedPacket (uint32_t targetId, uint32_t cmdId);
+            virtual void sendGoalPacket (const geometry_msgs::PoseStamped::ConstPtr& _pos);
+            
+
+            /**
+             * @brief send Packet after every n * pktInterval. \n
+             * This registers a callback which is periodically called
+             * 
+             * @param pktInterval
+             * @param n number of nodes in the swarm 
+             */
+            void sendPacket (ns3::Time pktInterval, int n);
+            
+
+            /**
+             * @brief Sends a braoadcast packet.
+             *
+             * @param pktInterval Deprecated
+             * @param n Deprecated
+             */
+            void sendBcPacket (ns3::Time pktInterval, int n);
+            
+            /**
+             * @brief Socket receiving callback. \n
+             * This function will be called as an interrupt if something is received at the socket end 
+             * 
+             * @param soc Socket at which the message will be received 
+             */
+            virtual void receivePacket (ns3::Ptr<ns3::Socket> soc);
+
+            /**
+             * @brief Terminate all sockets and send shut down command for this node
+             */
+            void closeSender ();
+            
+            /**
+             * @brief Setup the node for broadcasting 
+             * 
+             * @param node Node to setup broadcasting for
+             * @param tid Type id
+             */
+            void setBcSender (ns3::Ptr<ns3::Node> node, ns3::TypeId tid);
+            
+            /**
+             * @brief Initialize the sender for UDP msgs
+             * 
+             * @param node node 
+             * @param tid type id
+             * @param ip IP of the receiver socket
+             */
+            void setSender (ns3::Ptr<ns3::Node> node, ns3::TypeId tid, const std::string& ip);
+
+            /**
+             * @brief Initialize the sender for TCP msgs
+             * 
+             * @param node node 
+             * @param self_ip IP of the sender socket
+             * @param remote_ip IP of the receiver/remote socket
+             * @param startTime Time when sender application will start sending
+             */
+            void setSenderTCP (ns3::Ptr<ns3::Node> node, const std::string& self_ip, const std::string& remote_ip, ns3::Time startTime);
+
+            /**
+             * @brief Initialize the receiver for UDP msgs
+             * 
+             * @param node node 
+             * @param tid type id
+             */
+            void setRecv (ns3::Ptr<ns3::Node> node, ns3::TypeId tid);
+            void setRecv_test (ns3::Ptr<ns3::Node> node, ns3::TypeId tid);
+
+            /**
+             * @brief Initialize the receiver for TCP msgs
+             * 
+             * @param node node 
+             * @param ip IP of the receiver
+             * @param num_nodes Number of nodes
+             * @param stopTime Time when receiver application can stop
+             */
+            void setRecvTCP (ns3::Ptr<ns3::Node> node, const std::string& ip, int num_nodes, ns3::Time stopTime);
+            
+            ns3::Ptr<ns3::Socket>         source; /**< Socket for sending unicast messages */
+            ns3::Ptr<ns3::Socket>         source_bc; /**< Socket for sending broadcast messages */
+            ns3::Ptr<ns3::Socket>         recv_sink; /**< Receiver/sink socket */
+            int                           id; /**< Id of this system soc */
+            int                           system; /**< Indentify the  */
+            ns3::Vector3D                 pos; /**< Current position of the system */
+
+            std::map<std::pair<uint8_t, uint8_t>, rnl::ImageReceiveBuffer> image_buffers_; /** pair<system id, image sequnce>,  image information**/
+    };
+
+    class DroneSoc : public Soc 
+    {
+        public:
+            DroneSoc();
+            virtual ~DroneSoc();
+
+            void receivePacket(ns3::Ptr<ns3::Socket> soc) override;
+            void sendImagePacket();
+            void sendImageChunk(uint32_t i, uint32_t chunk_count, std::vector<uchar>& jpeg_buffer);
+            void sendNextImageBatch();
+
+            
+            std::vector<ns3::Vector3D>    wpts; /**< Waypoints that drone needs to follow */
+            ns3::Vector3D                 goal; /**< Goal position of the drone (cyw) */
+            int                           state; /**< State of the drone (cyw) */
+            int                           lookaheadindex; /**< Look ahead index for the drone */
+            int                           toggle_bc; /**< toggle broadcast on/off */
+            
+            // cyw variable
+            int                             last_seq;
+            // image
+            int                             jpeg_quality;
+            std::queue<std::vector<uchar>>  image_batch_queue;
+            bool                            batch_in_progress = false;
+            uint8_t                         current_batch_idx = 0;
+            rnl::ImageInfo                  image_info;
+            sensor_msgs::ImageConstPtr      imagePtr; /**< temporary store the image > */
+            geometry_msgs::Pose             cameraPose;
         
-        void sendOdomPacket(geometry_msgs::Pose _pos);
-        void sendGoalPacket (const geometry_msgs::PoseStamped::ConstPtr& _pos);     //send position and orientation
-        void sendArrivedPacket (uint32_t targetId, uint32_t cmdId);
-        void sendMAVLinkPacket(uint32_t msgId, uint32_t targetId);
-        void sendImagePacket();
-        void sendImageChunk(uint32_t i, uint32_t chunk_count, std::vector<uchar>& jpeg_buffer);
-        void sendNextImageBatch();
+            ros::Subscriber               drone_camera_sub;
+            ros::Publisher                drone_lk_ahead_pub;
+            ros::Subscriber               drone_pos_sub;
+            ros::Subscriber               drone_image_sub;
+            ros::Subscriber               target_pos_sub;
+
+
+            /**
+             * @brief Publishes the look ahead index
+             */
+            void publishLookAhead ();
+
+            /**
+             * @brief Set the (subscribed) position
+             *
+             * @param _pos Position
+             */
+            void posSubCb (const geometry_msgs::PoseStamped& _pos);
+
+            /**
+             * @brief Set the (subscribed) image
+             *
+             * @param _msg Image
+             */
+            void imageSubCb (const sensor_msgs::ImageConstPtr& _msg);
+
+            /**
+             * @brief Set the (subscribed) camera pose
+             *
+             * @param _pos Pose
+             */
+            void camPosSubCb (const geometry_msgs::Pose::ConstPtr& _pos);
+    };
+    
+    class GcsSoc : public Soc 
+    {
+        public:
+            GcsSoc();
+            virtual ~GcsSoc();
+
+            void receivePacket(ns3::Ptr<ns3::Socket> soc) override;
+            void sendGoalPacket (const geometry_msgs::PoseStamped::ConstPtr& _pos) override;    
+
+            bool                          imagePublish;   /**< Image publish in ROS or store in PNG*/
         
-
-        /**
-         * @brief send Packet after every n * pktInterval. \n
-         * This registers a callback which is periodically called
-         * 
-         * @param pktInterval
-         * @param n number of nodes in the swarm 
-         */
-        void sendPacket (ns3::Time pktInterval, int n);
-        
-
-        /**
-         * @brief Sends a braoadcast packet.
-         *
-         * @param pktInterval Deprecated
-         * @param n Deprecated
-         */
-        void sendBcPacket (ns3::Time pktInterval, int n);
-        
-        /**
-         * @brief Socket receiving callback. \n
-         * This function will be called as an interrupt if something is received at the socket end 
-         * 
-         * @param soc Socket at which the message will be received 
-         */
-        void receivePacket (ns3::Ptr<ns3::Socket> soc);
-
-        /**
-         * @brief Terminate all sockets and send shut down command for this node
-         */
-        void closeSender ();
-        
-        /**
-         * @brief update send message with the correct parent location to follow
-         */
-        void updateSendMsg ();
-        
-        /**
-         * @brief Setup the node for broadcasting 
-         * 
-         * @param node Node to setup broadcasting for
-         * @param tid Type id
-         */
-        void setBcSender (ns3::Ptr<ns3::Node> node, ns3::TypeId tid);
-        
-        /**
-         * @brief Initialize the sender for UDP msgs
-         * 
-         * @param node node 
-         * @param tid type id
-         * @param ip IP of the receiver socket
-         */
-        void setSender (ns3::Ptr<ns3::Node> node, ns3::TypeId tid, const std::string& ip);
-
-        /**
-         * @brief Initialize the sender for TCP msgs
-         * 
-         * @param node node 
-         * @param self_ip IP of the sender socket
-         * @param remote_ip IP of the receiver/remote socket
-         * @param startTime Time when sender application will start sending
-         */
-        void setSenderTCP (ns3::Ptr<ns3::Node> node, const std::string& self_ip, const std::string& remote_ip, ns3::Time startTime);
-
-        /**
-         * @brief Initialize the receiver for UDP msgs
-         * 
-         * @param node node 
-         * @param tid type id
-         */
-        void setRecv   (ns3::Ptr<ns3::Node> node, ns3::TypeId tid);
-
-        /**
-         * @brief Initialize the receiver for TCP msgs
-         * 
-         * @param node node 
-         * @param ip IP of the receiver
-         * @param num_nodes Number of nodes
-         * @param stopTime Time when receiver application can stop
-         */
-        void setRecvTCP (ns3::Ptr<ns3::Node> node, const std::string& ip, int num_nodes, ns3::Time stopTime);
-        
-        ns3::Ptr<ns3::Socket>         source; /**< Socket for sending unicast messages */
-        ns3::Ptr<ns3::Socket>         source_bc; /**< Socket for sending broadcast messages */
-
-        ns3::Ptr<ns3::Socket>         recv_sink; /**< Receiver/sink socket */
-        int                           id; /**< Id of this drone soc */
-        int                           anch_id; /**< Anchoring Id if any */
-        int                           circle_dir; /**Circling direction */
-        ns3::Vector3D                 anch_pos; /**< Anchoring position */
-        rnl::Nbt                      nbt; /**< Neighbour table */
-        std::vector<ns3::Vector3D>    wpts; /**< Waypoints that drone needs to follow */
-        ns3::Vector3D                 pos; /**< Current position of the drone */
-        ns3::Vector3D                 goal; /**< Goal position of the drone (cyw) */
-        int                           state; /**< State of the drone (cyw) */
-        int                           lookaheadindex; /**< Look ahead index for the drone */
-        int                           toggle_bc; /**< toggle broadcast on/off */
-        
-        // cyw variable
-        int                             jpeg_quality; /**< Desired image quality for jpeg compression [1-100]*/
-        bool                            imagePublish; /**< Image publish in ROS or store in PNG*/
-        sensor_msgs::ImageConstPtr      imagePtr; /**< temporary store the image > */
-        
-        geometry_msgs::Pose             cameraPose;
-        std::queue<std::vector<uchar>>  image_batch_queue;
-        bool                            batch_in_progress = false;
-        uint8_t                         current_batch_idx = 0;
-        rnl::ImageInfo                  image_info;
-        std::map<std::pair<uint8_t, uint8_t>, rnl::ImageReceiveBuffer> image_buffers_; /** pair<system id, image sequnce>,  image information**/
-        
-
-        ros::Publisher                drone_camera_pub;
-        ros::Subscriber               drone_camera_sub;
-        ros::Publisher                drone_lk_ahead_pub;
-        ros::Subscriber               drone_pos_sub;
-        ros::Subscriber               drone_image_sub;
-        ros::Publisher                arrive_response_pub;
-        ros::Subscriber               target_pos_sub;
-        ros::Publisher                drone_image_pub;
-
-
-
-        /**
-         * @brief Initializes the ros parameters.
-         *
-         * @param nh node handle
-         */
-        // void initializeRosParams(ros::NodeHandle& nh);
-
-        /**
-         * @brief Publishes the look ahead index
-         */
-        void publishLookAhead ();
-
-        /**
-         * @brief Set the (subscribed) position
-         *
-         * @param _pos Position
-         */
-        void posSubCb (const geometry_msgs::PoseStamped& _pos);
-
-        /**
-         * @brief Set the (subscribed) image
-         *
-         * @param _msg Image
-         */
-        void imageSubCb (const sensor_msgs::ImageConstPtr& _msg);
-
-        /**
-         * @brief Set the (subscribed) camera pose
-         *
-         * @param _pos Pose
-         */
-        void camPosSubCb (const geometry_msgs::Pose::ConstPtr& _pos);
+            ros::Publisher                arrive_response_pub;
+            ros::Publisher                drone_image_pub;
+            ros::Publisher                drone_camera_pub;
     };
 
     /**
@@ -458,17 +468,13 @@ namespace rnl{
             ros::NodeHandle nh;
             ros::NodeHandle nh_private;
             rnl::Properties            wifi_prop; /**< wifi properties object */
-            std::vector<rnl::DroneSoc> nsocs; /**< UAV Drone socs in the simulation, Each DroneSoc represents a UAV */
             int                        num_nodes; /**< number of nodes */
-
+            std::vector<std::shared_ptr<rnl::DroneSoc>> nsocs; /**< Drone socs in the simulation, Each DroneSoc represents a Drone */
+            rnl::GcsSoc                gsocs;/**< GCS socs in the simulation, Each GcsSoc represents a GCS */
 
             ns3::MobilityHelper        mobility; /**< Mobility helper to set the initial mobility of the nodes */
             ns3::Time                  pkt_interval; /**< Unicast packet interval */
             ns3::Time                  pos_interval; /**< Interval after which advancePos repeats */
             ns3::Time                  stopTime; /**< Stop time */
-            int                        leader_id; /**< Leader index */
-            int                        ldirec_flag; /**< Deprecated */
-            int                        lchild_id; /**< Child index */
-            int                        tail_id; /**< Child index */
     };
 };
