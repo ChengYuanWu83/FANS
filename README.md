@@ -24,27 +24,13 @@ Make sure you install the correct ROS Distribution corresponding to your Ubuntu 
 * Execute the following commands to install dependencies : 
 ```
 sudo apt-get update -y
-sudo apt-get install git zip cmake build-essential genromfs ninja-build exiftool astyle python-argparse python-empy python-toml python-numpy python-dev python-pip python3-pip gstreamer1.0-plugins-bad gstreamer1.0-libav gstreamer1.0-gl python-catkin-tools python-rosinstall-generator ros-noetic-gazebo-* -y
+sudo apt-get install git zip cmake build-essential protobuf-compiler libeigen3-dev genromfs ninja-build exiftool astyle python3-empy python3-toml python3-dev python3-pip gstreamer1.0-plugins-bad gstreamer1.0-libav gstreamer1.0-gl python3-catkin-tools python3-rosinstall-generator ros-noetic-geographic-msgs ros-noetic-gazebo-* -y
 sudo -H pip install --upgrade pip
 sudo -H pip install pandas jinja2 pyserial pyyaml
 sudo -H pip3 install pyulog
 sudo usermod -a -G dialout $USER
 sudo apt-get remove modemmanager -y
 
-sudo apt install -y \
-	ninja-build \
-	exiftool \
-	python-argparse \
-	python-empy \
-	python-toml \
-	python-numpy \
-	python-yaml \
-	python-dev \
-	python-pip \
-	ninja-build \
-	protobuf-compiler \
-	libeigen3-dev \
-	genromfs
 pip install \
 	pandas \
 	jinja2 \
