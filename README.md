@@ -8,10 +8,6 @@ Following are the main OS/software/frameworks we use at FANS :
 
 ## [A] Setting up PX4 SITL with ROS Noetic (Ubuntu 20.04) in a simulated environment in Gazebo.
 
-### 0) Resources used:
-* PX4 Dev official documentation : https://docs.px4.io/master/en/
-* Gitbook from GAAS : https://gaas.gitbook.io/guide/software-realization-build-your-own-autonomous-drone/build-your-own-autonomous-drone-e01-offboard-control-and-gazebo-simulation 
-
 ### 1) Install ROS Noetic from the official [ROSWiki documentation](http://wiki.ros.org/noetic/Installation/Ubuntu)
 Make sure you install the correct ROS Distribution corresponding to your Ubuntu version. 
 | ROS version | Ubuntu version | 
@@ -24,7 +20,8 @@ Make sure you install the correct ROS Distribution corresponding to your Ubuntu 
 * Execute the following commands to install dependencies : 
 ```
 sudo apt-get update -y
-sudo apt-get install git zip cmake build-essential protobuf-compiler libeigen3-dev genromfs ninja-build exiftool astyle python3-empy python3-toml python3-dev python3-pip gstreamer1.0-plugins-bad gstreamer1.0-libav gstreamer1.0-gl python3-catkin-tools python3-rosinstall-generator ros-noetic-geographic-msgs ros-noetic-gazebo-* -y
+sudo apt-get install git zip cmake build-essential protobuf-compiler libeigen3-dev genromfs ninja-build exiftool astyle python3-empy python3-toml python3-dev python3-pip python3-catkin-tools python3-rosinstall-generator ros-noetic-geographic-msgs ros-noetic-gazebo-* -y
+sudo apt-get install libgstreamer-plugins-base1.0-dev gstreamer1.0-plugins-bad gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-ugly gstreamer1.0-libav gstreamer1.0-gl -y
 sudo -H pip install --upgrade pip
 sudo -H pip install pandas jinja2 pyserial pyyaml
 sudo -H pip3 install pyulog
@@ -71,7 +68,7 @@ git clone -b v1.12.0 https://github.com/PX4/PX4-Autopilot.git --recursive
 cd PX4-Autopilot
 make px4_sitl_default gazebo 
 ```
-
+* After successfully building it, PX4 will launch automatically and spawn the drone.
 ### 5) Add the Gazebo model and ROS package paths to `fans_ws/devel/setup.bash` file
 * Add the following lines to the `setup.bash` file inside (at the end) `<path_to_fans_ws>/devel` so Gazebo can find the sdf models and ROS can find the packages when you source your ROS workspace (fans_ws).
 ```
