@@ -176,7 +176,7 @@ make
 * Clone this repo in your systems and copy [pci](https://github.com/Sarang-BITS/FANS/tree/main/pci) and [planner_msgs](https://github.com/Sarang-BITS/FANS/tree/main/planner_msgs) to `fans_ws/src` (ROS workspace), [mavad](https://github.com/Sarang-BITS/FANS/tree/main/mavad) to `ns3-all-in-one/NS3`, `sitl8drones.launch` to `<path_to_fans_ws>/src/PX4-Autopilot/launch`, and `pci8drones.launch` to `<path_to_fans_ws>/src/pci/launch`
 ```bash
 cd ~
-git clone https://github.com/Sarang-BITS/FANS.git
+git clone https://github.com/ChengYuanWu83/FANS.git
 cp -r ~/FANS/planner_msgs <path_to_fans_ws>/src/
 cp -r ~/FANS/pci <path_to_fans_ws>/src/
 cp -r ~/FANS/mavad <path_to_ns3-all-in-one>/NS3/
