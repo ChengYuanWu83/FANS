@@ -82,26 +82,7 @@ export ROS_PACKAGE_PATH=$ROS_PACKAGE_PATH:~/fans_ws/src/PX4-Autopilot/Tools/sitl
 #echo -e "GAZEBO_MODEL_PATH $GAZEBO_MODEL_PATH"
 #echo -e "LD_LIBRARY_PATH $LD_LIBRARY_PATH"
 ```
-### 6) [Optional] Add downward pointing camera to your drones in Gazebo
-* Inside the file `iris.sdf.jinja` in `PX4-Autopilot/Tools/sitl_gazebo/models/iris`, add the following code snippet at the end after the `</plugin>` tag and before the `</model>` 
-```xml
-<include>
-	<uri>model://fpv_cam</uri>
-	<pose>0.1 0 0 0 1.5708 0</pose>
-</include>
-<joint name="fpv_cam_joint" type="fixed">
-	<child>fpv_cam::link</child>
-	<parent>base_link</parent>
-	<axis>
-		<xyz>0 0 1</xyz>
-		<limit>
-			<upper>0</upper>
-			<lower>0</lower>
-		</limit>
-	</axis>
-</joint>
-```
-### 7) Testing the setup
+### 6) Testing the setup
 * Source your workspace in the current working terminal
 ```
 source ~/fans_ws/devel/setup.bash
@@ -145,12 +126,7 @@ alias fans_ws='source ~/fans_ws/devel/setup.bash'
 * NS3 with cmake : https://gabrielcarvfer.github.io/NS3/installation
 
 ### 1) Installation of standard/normal and cmake versions of NS3
-* Install the standard version of NS3 ; Install all the required dependencies from [this](https://www.nsnam.org/wiki/Installation#Ubuntu.2FDebian.2FMint) link, and then install NS3 from [this](https://www.nsnam.org/wiki/Installation#Installation) link in the following way: <br/>
-a) `Manual installation` -> `Downloading ns-3 Using Git` <br/>
-b) `Building ns-3 with build.py` <br/>
-c) `Configuration with Waf` <br/>
-d) `Validating` <br/>
-
+* Install the standard version of NS3 ; Install all the required dependencies from [this](https://www.nsnam.org/wiki/Installation#Ubuntu.2FDebian.2FMint) link, and then install NS3 from [this](https://www.nsnam.org/wiki/Installation#Installation) link in the following way: 
 * Clone the cmake version of NS3 inside the `ns-3-allinone` folder
 ```
 cd <path_to_ns-3-allinone_folder>
@@ -177,11 +153,11 @@ make
 ```bash
 cd ~
 git clone https://github.com/ChengYuanWu83/FANS.git
-cp -r ~/FANS/planner_msgs <path_to_fans_ws>/src/
 cp -r ~/FANS/pci <path_to_fans_ws>/src/
+cp -r ~/FANS/flightgoggles <path_to_fans_ws>/src/
+cp -r ~/FANS/camera_orientation_plugin <path_to_fans_ws>/src/
 cp -r ~/FANS/mavad <path_to_ns3-all-in-one>/NS3/
-cp ~/FANS/sitl8drones.launch <path_to_fans_ws>/src/PX4-Autopilot/launch/
-cp ~/FANS/pci8drones.launch <path_to_fans_ws>/src/pci/launch/
+cp ~/FANS/sitlSingleDrone.launch <path_to_fans_ws>/src/PX4-Autopilot/launch/
 ```
 * Build your ROS workspace (fans_ws)
 ```bash
@@ -208,15 +184,15 @@ cd <path_to_ns3-all-in-one>/NS3/cmake-cache
 make
 ```
 * **Running the simulation demo**
-    * Launch the the drones with PX4 autopilot and MAVROS in Gazebo (in terminal 1). You should see 8 unarmed, landed drones in the Gazebo simulator window
+    * Launch the the drones with PX4 autopilot and MAVROS in Gazebo (in terminal 1). You should see 1 unarmed, landed drone in the Gazebo simulator window
     ```bash
     source <path_to_fans_ws>/devel/setup.bash
-    roslaunch px4 sitl8drones.launch
+    roslaunch px4 sitlSingleDrone.launch
     ```
-    * Launch the planner control interface for the drones (in terminal 2). You should see the 8 drones armed and hovering at a certain height in the Gazebo simulator window. </br> **Note :** If you find only some of the drones hovering and others landed on the ground, kill the process (press Ctrl+C in terminal 2), let the drones land and run the launch file again.
+    * Launch the planner control interface for the drones (in terminal 2). You should see the 1 drone armed and hovering at a certain height in the Gazebo simulator window. 
     ```bash
     source <path_to_fans_ws>/devel/setup.bash
-    roslaunch pci pci8drones.launch
+    roslaunch pci single_drone.launch
     ```
     * Launch the network simulator and planner stack (in terminal 3). You should see the IP initialization and message communication logs in the terminal and the formation motion of drones in the Gazebo simulator window
     ```
@@ -230,25 +206,8 @@ make
     ```
 
 
-
-## Contributors
-* [Sarang Dhongdi](https://github.com/Sarang-BITS)
-* [Ojit Mehta](https://github.com/ojitmehta123)
-* [Mihir Dharmadhikari](https://github.com/MihirDharmadhikari)
-* [Vaibhav Agarwal](https://www.github.com/agvab0811)
-* [Vishal Singh](https://www.github.com/vishalbhsc)
-* [Shambhavi Singh](https://www.github.com/28shambhavi)
-* [Aditya Bidwai](https://www.github.com/adbidwai)
-
-
 ## Acknowledgement
-This work is supported by Science and Engineering Research Board (SERB-SRG/2019/001204), Government of India.
+Our implementation is built upon following repositories:
+[FANS](https://github.com/Sarang-BITS/FANS).
+[FlightGoogles](https://github.com/mit-aera/FlightGoggles).
 
-We would like to extend our special thanks of gratitude to [Dr. Mohit P. Tahiliani](https://github.com/mohittahiliani) for his valuable guidance throughout the course of this project
-
-## Related Publication
-[FANS: Flying Ad-hoc Network Simulator](https://dl.acm.org/doi/pdf/10.1145/3545250.3560848)
-
-## Branches
-* **main** : Contains the entire co-simulator setup which integrates NS3 (networking) and PX4-SITL in Gazebo (robot simulator)
-* **no_ros** : Contains the networking + planner stack with visualizations in NetAnim
