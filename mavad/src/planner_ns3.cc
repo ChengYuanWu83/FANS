@@ -412,16 +412,23 @@ nh{_nh}, nh_private{_nh_private}
 
 }
 
-void rnl::Planner::initializeBuilding()
+void rnl::Planner::initializeBuilding(std::string scene_type)
 {
     // Building
     ns3::Ptr<ns3::Building> building1 = ns3::CreateObject<ns3::Building>();
     building1->SetBoundaries(ns3::Box(-3.0, 3.0, -3.0, 3.0, 0.0, 3.0));  //x_min, x_max, y_min, y_max, z_min, z_max
-    building1->SetBuildingType(ns3::Building::Office);
-    building1->SetExtWallsType(ns3::Building::ConcreteWithWindows);
-    building1->SetNFloors(12);
-    building1->SetNRoomsX(3);
-    building1->SetNRoomsY(4);
+    
+    if (scene_type == "metal") {
+        building1->SetBuildingType(ns3::Building::Commercial); 
+        building1->SetExtWallsType(ns3::Building::StoneBlocks); 
+    } else {
+        building1->SetBuildingType(ns3::Building::Residential);
+        building1->SetExtWallsType(ns3::Building::Wood);
+    }
+
+    building1->SetNFloors(1);  
+    building1->SetNRoomsX(1);
+    building1->SetNRoomsY(1);
 
     ns3::BuildingContainer buildings;
     buildings.Add(building1);
@@ -594,15 +601,11 @@ void rnl::Planner::takeOff (double _t)
     }
 }
 
-void rnl::Planner::startSimul()
+void rnl::Planner::startSimul(std::string scene_type)
 {
-    for (int i = 0; i < nsocs.size(); ++i)
-    {
-        // nsocs[i]->setRecv (wifi_prop.c.Get(i), wifi_prop.tid_val());
-    }
     initializeRosParams();
     initializeMobility();
-    initializeBuilding();
+    initializeBuilding(scene_type);
 
     ns3::Simulator::ScheduleNow (&rnl::Planner::takeOff, this, ns3::Simulator::Now ().GetSeconds());
     ns3::Simulator::ScheduleNow (&rnl::Planner::advancePos, this, pos_interval);

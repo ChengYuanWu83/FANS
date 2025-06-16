@@ -376,7 +376,7 @@ namespace rnl{
             /**
              * @brief Initialize building in simulation
              */
-            void initializeBuilding ();
+            void initializeBuilding (std::string scene_type);
 
             /**
              * @brief   Initialize sockets
@@ -406,7 +406,7 @@ namespace rnl{
             /**
              * @brief Start simulation
              */
-            void startSimul ();
+            void startSimul (std::string scene_type);
 
             /**
              * @brief Increment look ahead point. (Assuming no dynamics), spawning nodes at distances

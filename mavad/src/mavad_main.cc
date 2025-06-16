@@ -29,11 +29,14 @@ int main(int argc, char **argv){
     double dist_gcs2building = 25.0;
     bool band_5GHz_enable = false;
     bool save_image_enable = false;
+    std::string scene_type = "metal";
+
     cmd.AddValue("num", "The number of drone", num_nodes);
     cmd.AddValue("quality", "Desired image quality for jpeg compression [1-100]", jpeg_quality);
     cmd.AddValue("dist", "Distance of GCS from the center of the building (meters)", dist_gcs2building);
     cmd.AddValue("band_5G", "Using 2.4GHz frequency band on WiFi", band_5GHz_enable);
     cmd.AddValue("save_image", "Image publish in ROS or store in PNG", save_image_enable);
+    cmd.AddValue("scene_type", "Scene type: wood or metal", scene_type);
     
     cmd.Parse(argc, argv);
 
@@ -66,6 +69,6 @@ int main(int argc, char **argv){
      */
     rnl::Planner plan (nh, nh_private, prop, num_nodes, 0.2, 0.1, 2500.0);  
     plan.initializeSockets (dist_gcs2building, jpeg_quality, !save_image_enable);
-    plan.startSimul();
+    plan.startSimul(scene_type);
     return 0;
 }
