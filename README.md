@@ -156,8 +156,10 @@ git clone https://github.com/ChengYuanWu83/FANS.git
 cp -r ~/FANS/pci <path_to_fans_ws>/src/
 cp -r ~/FANS/flightgoggles <path_to_fans_ws>/src/
 cp -r ~/FANS/camera_orientation_plugin <path_to_fans_ws>/src/
+cp -r ~/FANS/camera_orientation_plugin <path_to_fans_ws>/src/
 cp -r ~/FANS/mavad <path_to_ns3-all-in-one>/NS3/
 cp ~/FANS/sitlSingleDrone.launch <path_to_fans_ws>/src/PX4-Autopilot/launch/
+cp ~/FANS/iris.sdf.jinja <path_to_fans_ws>/src/PX4-Autopilot/Tools/sitl_gazebo/models/
 ```
 * Build your ROS workspace (fans_ws)
 ```bash
