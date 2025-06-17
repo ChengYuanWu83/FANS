@@ -129,13 +129,13 @@ alias fans_ws='source ~/fans_ws/devel/setup.bash'
 * Install the standard version of NS3 ; Install all the required dependencies from [this](https://www.nsnam.org/wiki/Installation#Ubuntu.2FDebian.2FMint) link, and then install NS3 from [this](https://www.nsnam.org/wiki/Installation#Installation) link in the following way: 
 * Clone the cmake version of NS3 inside the `ns-3-allinone` folder
 ```
-cd <path_to_ns-3-allinone_folder>
+cd ~
 git clone https://github.com/Gabrielcarvfer/NS3.git
 ```
 
 * Build the cmake version of NS3
 ```
-cd <path_to_ns-3-allinone_folder>/NS3
+cd NS3
 mkdir cmake-cache
 cd cmake-cache
 cmake -DCMAKE_BUILD_TYPE=DEBUG ..
@@ -157,7 +157,7 @@ cp -r ~/FANS/pci <path_to_fans_ws>/src/
 cp -r ~/FANS/flightgoggles <path_to_fans_ws>/src/
 cp -r ~/FANS/camera_orientation_plugin <path_to_fans_ws>/src/
 cp -r ~/FANS/camera_orientation_plugin <path_to_fans_ws>/src/
-cp -r ~/FANS/mavad <path_to_ns3-all-in-one>/NS3/
+cp -r ~/FANS/mavad <path_to_ns3>/
 cp ~/FANS/sitlSingleDrone.launch <path_to_fans_ws>/src/PX4-Autopilot/launch/
 cp ~/FANS/iris.sdf.jinja <path_to_fans_ws>/src/PX4-Autopilot/Tools/sitl_gazebo/models/
 ```
@@ -168,7 +168,7 @@ catkin build
 ```
 * Edit the `CMakeLists.txt` file of `ns3-all-in-one/NS3` to build `mavad`
 ```bash
-cd <path_to_ns3-all-in-one>/NS3/
+cd <path_to_ns3>/
 gedit CMakeLists.txt 
 ```
 * Add the following contents in the CMakelists.txt file and enable the option to build using emulation support
@@ -182,7 +182,7 @@ set(NS3_EMU ON)
 * Build `mavad` (source your ROS workspace before building so it can find `planner_msgs` which is a dependency for `mavad`). After the build is successful, you would find an executable `mavad_main` inside `<path_to_ns3-all-in-one>/NS3/build`.
 ```bash
 source <path_to_fans_ws>/devel/setup.bash
-cd <path_to_ns3-all-in-one>/NS3/cmake-cache
+cd <path_to_ns3>//cmake-cache
 make
 ```
 * **Running the simulation demo**
@@ -198,18 +198,13 @@ make
     ```
     * Launch the network simulator and planner stack (in terminal 3). You should see the IP initialization and message communication logs in the terminal and the formation motion of drones in the Gazebo simulator window
     ```
-    cd <path_to_ns3-all-in-one>/NS3/build
+    cd <path_to_ns3>//build
     ./mavad_main
-    ```
-    * Fire up the NetAnim visualizer to visualize message communication between nodes and their positions and open the XML trace file `<path_to-ns3-all-in-one>/NS3/build/planner_ns3_anim.xml` in it
-    ```bash
-    cd <path_to-ns3-all-in-one>/netanim
-    ./NetAnim
     ```
 
 
 ## Acknowledgement
 Our implementation is built upon following repositories:
-[FANS](https://github.com/Sarang-BITS/FANS).
-[FlightGoogles](https://github.com/mit-aera/FlightGoggles).
+[FANS](https://github.com/Sarang-BITS/FANS) for interface of ROS and NS3
+[FlightGoogles](https://github.com/mit-aera/FlightGoggles) for interface of ROS and Unity
 
