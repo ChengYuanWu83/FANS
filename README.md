@@ -20,7 +20,7 @@ Make sure you install the correct ROS Distribution corresponding to your Ubuntu 
 * Execute the following commands to install dependencies : 
 ```
 sudo apt-get update -y
-sudo apt-get install git zip cmake build-essential protobuf-compiler libeigen3-dev genromfs ninja-build exiftool astyle python3-empy python3-toml python3-dev python3-pip python3-catkin-tools python3-rosinstall-generator ros-noetic-geographic-msgs ros-noetic-gazebo-* -y
+sudo apt-get install git zip cmake build-essential protobuf-compiler libzmqpp-dev libeigen3-dev genromfs ninja-build exiftool astyle python3-empy python3-toml python3-dev python3-pip python3-catkin-tools python3-rosinstall-generator ros-noetic-geographic-msgs ros-noetic-gazebo-* -y
 sudo apt-get install libgstreamer-plugins-base1.0-dev gstreamer1.0-plugins-bad gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-ugly gstreamer1.0-libav gstreamer1.0-gl -y
 sudo -H pip install --upgrade pip
 sudo -H pip install pandas jinja2 pyserial pyyaml
