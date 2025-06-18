@@ -1,5 +1,5 @@
-# FANS : Flying Ad-hoc Network Simulator (main branch)
-Following are the main OS/software/frameworks we use at FANS :
+# FlyGS
+Following are the main OS/software/frameworks we use at FlyGS :
 * [Ubuntu 20.04 (OS)](https://releases.ubuntu.com/20.04/)
 * [ROS Noetic LTS (Middleware)](http://wiki.ros.org/noetic)
 * [MAVROS](http://wiki.ros.org/mavros), [Mavlink](https://mavlink.io/en/), [PX4-Autopilot](https://docs.px4.io/master/en/) (UAV simulation packages)
@@ -40,10 +40,10 @@ pip install \
 ```
 
 ### 3) Download MAVROS, MAVLink packages and build them
-* After ROS installation is complete, set up and initialize a ROS workspace with any name (for e.g. `fans_ws`)
+* After ROS installation is complete, set up and initialize a ROS workspace with any name (for e.g. `flyGS_ws`)
 ```
-mkdir -p fans_ws/src
-cd fans_ws
+mkdir -p flyGS_ws/src
+cd flyGS_ws
 catkin init && wstool init src
 ```
 * Add the .rosinstall files for MAVROS and MAVLink and build them (Note that the below steps are to be done in the root of the workspace)
@@ -63,20 +63,20 @@ catkin build
 
 ### 4) Download the PX4 Firmware package and build it
 ```
-cd ~/fans_ws/src
+cd ~/flyGS_ws/src
 git clone -b v1.12.0 https://github.com/PX4/PX4-Autopilot.git --recursive
 cd PX4-Autopilot
 make px4_sitl_default gazebo 
 ```
 * After successfully building it, PX4 will launch automatically and spawn the drone.
-### 5) Add the Gazebo model and ROS package paths to `fans_ws/devel/setup.bash` file
-* Add the following lines to the `setup.bash` file inside (at the end) `<path_to_fans_ws>/devel` so Gazebo can find the sdf models and ROS can find the packages when you source your ROS workspace (fans_ws).
+### 5) Add the Gazebo model and ROS package paths to `flyGS_ws/devel/setup.bash` file
+* Add the following lines to the `setup.bash` file inside (at the end) `<path_to_ws>/devel` so Gazebo can find the sdf models and ROS can find the packages when you source your ROS workspace (flyGS_ws).
 ```
-source ~/fans_ws/src/PX4-Autopilot/Tools/setup_gazebo.bash ~/fans_ws/src/PX4-Autopilot/ ~/fans_ws/src/PX4-Autopilot/build/px4_sitl_default
-export ROS_PACKAGE_PATH=$ROS_PACKAGE_PATH:~/fans_ws/src/PX4-Autopilot
-export ROS_PACKAGE_PATH=$ROS_PACKAGE_PATH:~/fans_ws/src/PX4-Autopilot/Tools/sitl_gazebo
+source ~/flyGS_ws/src/PX4-Autopilot/Tools/setup_gazebo.bash ~/flyGS_ws/src/PX4-Autopilot/ ~/flyGS_ws/src/PX4-Autopilot/build/px4_sitl_default
+export ROS_PACKAGE_PATH=$ROS_PACKAGE_PATH:~/flyGS_ws/src/PX4-Autopilot
+export ROS_PACKAGE_PATH=$ROS_PACKAGE_PATH:~/flyGS_ws/src/PX4-Autopilot/Tools/sitl_gazebo
 ```
-* If you don't want the Gazebo paths to be printed in your terminal every time, comment out the print (`echo`) statements in the `fans_ws/src/PX4-Autopilot/Tools/setup_gazebo.bash` file.
+* If you don't want the Gazebo paths to be printed in your terminal every time, comment out the print (`echo`) statements in the `flyGS_ws/src/PX4-Autopilot/Tools/setup_gazebo.bash` file.
 ```
 #echo -e "GAZEBO_PLUGIN_PATH $GAZEBO_PLUGIN_PATH"
 #echo -e "GAZEBO_MODEL_PATH $GAZEBO_MODEL_PATH"
@@ -85,7 +85,7 @@ export ROS_PACKAGE_PATH=$ROS_PACKAGE_PATH:~/fans_ws/src/PX4-Autopilot/Tools/sitl
 ### 6) Testing the setup
 * Source your workspace in the current working terminal
 ```
-source ~/fans_ws/devel/setup.bash
+source ~/flyGS_ws/devel/setup.bash
 ```
 * Launch PX4 and MAVROS nodes using the following command, you must see an iris drone in a Gazebo world environment.
 ```
@@ -114,9 +114,9 @@ system_status: 3
 ```
 
 ### n) Tips for fast execution
-* Create an alias in your `.bashrc` file with the name of your workspace to source your workspace from any terminal super fast. For e.g. if the name of your workspace is `fans_ws` (assumed to be there in the `~` directory), add the following line in your `.bashrc` file (present in the `~` folder).
+* Create an alias in your `.bashrc` file with the name of your workspace to source your workspace from any terminal super fast. For e.g. if the name of your workspace is `flyGS_ws` (assumed to be there in the `~` directory), add the following line in your `.bashrc` file (present in the `~` folder).
 ```
-alias fans_ws='source ~/fans_ws/devel/setup.bash'
+alias flyGS_ws='source ~/flyGS_ws/devel/setup.bash'
 ```
 
 ## [B] Installing and setting up NS3 with cmake
@@ -149,21 +149,21 @@ make
 
 ## Setup and demo
 * To use this project, you need to install ROS, MAVROS, PX4-SITL and NS3 (using CMake). Note that this project has been tested on Ubuntu 18.04 OS and ROS Melodic distribution. All the instructions to install these dependencies are given in the [SETUP.md](https://github.com/Sarang-BITS/airborne_networks/blob/main/SETUP.md) file
-* Clone this repo in your systems and copy [pci](https://github.com/Sarang-BITS/FANS/tree/main/pci) and [planner_msgs](https://github.com/Sarang-BITS/FANS/tree/main/planner_msgs) to `fans_ws/src` (ROS workspace), [mavad](https://github.com/Sarang-BITS/FANS/tree/main/mavad) to `ns3-all-in-one/NS3`, `sitl8drones.launch` to `<path_to_fans_ws>/src/PX4-Autopilot/launch`, and `pci8drones.launch` to `<path_to_fans_ws>/src/pci/launch`
+* Clone this repo in your systems and copy [pci](https://github.com/Sarang-BITS/flyGS/tree/main/pci) and [planner_msgs](https://github.com/Sarang-BITS/flyGS/tree/main/planner_msgs) to `flyGS_ws/src` (ROS workspace), [mavad](https://github.com/Sarang-BITS/flyGS/tree/main/mavad) to `ns3-all-in-one/NS3`, `sitl8drones.launch` to `<path_to_ws>/src/PX4-Autopilot/launch`, and `pci8drones.launch` to `<path_to_ws>/src/pci/launch`
 ```bash
 cd ~
-git clone https://github.com/ChengYuanWu83/FANS.git
-cp -r ~/FANS/pci <path_to_fans_ws>/src/
-cp -r ~/FANS/flightgoggles <path_to_fans_ws>/src/
-cp -r ~/FANS/camera_orientation_plugin <path_to_fans_ws>/src/
-cp -r ~/FANS/camera_orientation_plugin <path_to_fans_ws>/src/
-cp -r ~/FANS/mavad <path_to_ns3>/
-cp ~/FANS/sitlSingleDrone.launch <path_to_fans_ws>/src/PX4-Autopilot/launch/
-cp ~/FANS/iris.sdf.jinja <path_to_fans_ws>/src/PX4-Autopilot/Tools/sitl_gazebo/models/
+git clone https://github.com/ChengYuanWu83/FlyGS.git
+cp -r ~/flyGS/pci <path_to_ws>/src/
+cp -r ~/flyGS/flightgoggles <path_to_ws>/src/
+cp -r ~/flyGS/camera_orientation_plugin <path_to_ws>/src/
+cp -r ~/flyGS/camera_orientation_plugin <path_to_ws>/src/
+cp -r ~/flyGS/mavad <path_to_ns3>/
+cp ~/flyGS/sitlSingleDrone.launch <path_to_ws>/src/PX4-Autopilot/launch/
+cp ~/flyGS/iris.sdf.jinja <path_to_ws>/src/PX4-Autopilot/Tools/sitl_gazebo/models/
 ```
-* Build your ROS workspace (fans_ws)
+* Build your ROS workspace (flyGS_ws)
 ```bash
-cd <path_to_fans_ws>
+cd <path_to_ws>
 catkin build
 ```
 * Edit the `CMakeLists.txt` file of `ns3-all-in-one/NS3` to build `mavad`
@@ -181,19 +181,19 @@ set(NS3_EMU ON)
 ```
 * Build `mavad` (source your ROS workspace before building so it can find `planner_msgs` which is a dependency for `mavad`). After the build is successful, you would find an executable `mavad_main` inside `<path_to_ns3-all-in-one>/NS3/build`.
 ```bash
-source <path_to_fans_ws>/devel/setup.bash
+source <path_to_ws>/devel/setup.bash
 cd <path_to_ns3>//cmake-cache
 make
 ```
 * **Running the simulation demo**
     * Launch the the drones with PX4 autopilot and MAVROS in Gazebo (in terminal 1). You should see 1 unarmed, landed drone in the Gazebo simulator window
     ```bash
-    source <path_to_fans_ws>/devel/setup.bash
+    source <path_to_ws>/devel/setup.bash
     roslaunch px4 sitlSingleDrone.launch
     ```
     * Launch the planner control interface for the drones (in terminal 2). You should see the 1 drone armed and hovering at a certain height in the Gazebo simulator window. 
     ```bash
-    source <path_to_fans_ws>/devel/setup.bash
+    source <path_to_ws>/devel/setup.bash
     roslaunch pci single_drone.launch
     ```
     * Launch the network simulator and planner stack (in terminal 3). You should see the IP initialization and message communication logs in the terminal and the formation motion of drones in the Gazebo simulator window
@@ -205,6 +205,6 @@ make
 
 ## Acknowledgement
 Our implementation is built upon following repositories:
-[FANS](https://github.com/Sarang-BITS/FANS) for interface of ROS and NS3
+[flyGS](https://github.com/Sarang-BITS/flyGS) for interface of ROS and NS3
 [FlightGoogles](https://github.com/mit-aera/FlightGoggles) for interface of ROS and Unity
 
